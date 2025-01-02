@@ -1,14 +1,15 @@
-#include "ros/ros.h"
-#include <ros/package.h>
+#include "rclcpp/rclcpp.hpp"
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 #include <cv_bridge/cv_bridge.h>
 
-#include <actionlib/client/simple_action_client.h>
-#include <actionlib/client/terminal_state.h>
-#include <ipa_building_msgs/MapSegmentationAction.h>
-#include <sensor_msgs/image_encodings.h>
+// #include <actionlib/client/simple_action_client.h>
+// #include <actionlib/client/terminal_state.h>
+#include <rclcpp_action/rclcpp_action.hpp>
+// #include <ipa_building_msgs/MapSegmentationAction.h>
+// #include <sensor_msgs/image_encodings.h>
 
 #include <ipa_room_segmentation/timer.h>
 #include <ipa_room_segmentation/evaluation_segmentation.h>
@@ -406,9 +407,9 @@ int segmentationNameToNumber(const std::string name)
 
 int main(int argc, char **argv) {
 	ros::init(argc, argv, "evaluation");
-	ros::NodeHandle n;
+	rclcpp::Node n;
 //	ros::Subscriber semantic_labeler = n.Subscribe("Laser_scanner", 1000, segmentation_algorithm);
-	ROS_INFO("Evaluation of the segmented maps. Calculates some Parameters describing the rooms.");
+	RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Evaluation of the segmented maps. Calculates some Parameters describing the rooms.");
 //	ros::spin();
 
 	double map_resolution = 0.05;
@@ -474,7 +475,7 @@ int main(int argc, char **argv) {
 	map_names.push_back("office_h_furnitures");
 	map_names.push_back("office_i_furnitures");
 
-	const std::string segmented_map_path = "room_segmentation/"; //ros::package::getPath("ipa_room_segmentation") + "/common/files/segmented_maps/";
+	const std::string segmented_map_path = "room_segmentation/"; //ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/segmented_maps/";
 	const std::string command = "mkdir -p " + segmented_map_path;
 	int return_value = system(command.c_str());
 
@@ -506,7 +507,7 @@ int main(int argc, char **argv) {
 
 		//load map
 		std::string map_name = map_names[image_index];
-		std::string image_filename = ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + ".png";
+		std::string image_filename = ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + ".png";
 		std::cout << "map: " << image_filename << std::endl;
 		cv::Mat map = cv::imread(image_filename.c_str(), 0);
 		//make non-white pixels black
@@ -539,10 +540,10 @@ int main(int argc, char **argv) {
 			// true causes the client to spin its own thread
 			actionlib::SimpleActionClient<ipa_building_msgs::MapSegmentationAction> ac("room_segmentation_server", true);
 
-			ROS_INFO("Waiting for action server to start.");
+			RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Waiting for action server to start.");
 			// wait for the action server to start
 			ac.waitForServer(); //will wait for infinite time
-			ROS_INFO("Action server started, sending goal.");
+			RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Action server started, sending goal.");
 
 			// send dynamic reconfigure config
 			DynamicReconfigureClient drc(n, "room_segmentation_server/set_parameters", "room_segmentation_server/parameter_updates");
@@ -552,13 +553,13 @@ int main(int argc, char **argv) {
 			{
 				drc.setConfig("room_area_factor_lower_limit_morphological", 0.8);
 				drc.setConfig("room_area_factor_upper_limit_morphological", 47.0);
-				ROS_INFO("You have chosen the morphological segmentation.");
+				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the morphological segmentation.");
 			}
 			if(room_segmentation_algorithm == 2) //distance
 			{
 				drc.setConfig("room_area_factor_lower_limit_distance", 0.35);
 				drc.setConfig("room_area_factor_upper_limit_distance", 163.0);
-				ROS_INFO("You have chosen the distance segmentation.");
+				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the distance segmentation.");
 			}
 			if(room_segmentation_algorithm == 3) //voronoi
 			{
@@ -568,13 +569,13 @@ int main(int argc, char **argv) {
 				drc.setConfig("max_iterations", 150);
 				drc.setConfig("min_critical_point_distance_factor", 0.5); //1.6;
 				drc.setConfig("max_area_for_merging", 12.5);
-				ROS_INFO("You have chosen the Voronoi segmentation");
+				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the Voronoi segmentation");
 			}
 			if(room_segmentation_algorithm == 4) //semantic
 			{
 				drc.setConfig("room_area_factor_lower_limit_semantic", 1.0);
 				drc.setConfig("room_area_factor_upper_limit_semantic", 1000000.);//23.0;
-				ROS_INFO("You have chosen the semantic segmentation.");
+				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the semantic segmentation.");
 			}
 			if(room_segmentation_algorithm == 5) //voronoi random field
 			{
@@ -586,7 +587,7 @@ int main(int argc, char **argv) {
 				drc.setConfig("min_voronoi_random_field_node_distance", 7.0); // [pixel]
 				drc.setConfig("max_voronoi_random_field_inference_iterations", 9000);
 				drc.setConfig("max_area_for_merging", 12.5);
-				ROS_INFO("You have chosen the Voronoi random field segmentation.");
+				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the Voronoi random field segmentation.");
 			}
 
 			// send a goal to the action
@@ -608,7 +609,7 @@ int main(int argc, char **argv) {
 				continue;
 
 			double runtime = tim.getElapsedTimeInSec();
-			ROS_INFO("Finished successfully!");
+			RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Finished successfully!");
 
 			// retrieve segmentation
 			ipa_building_msgs::MapSegmentationResultConstPtr result = ac.getResult();
@@ -743,7 +744,7 @@ int main(int argc, char **argv) {
 			std::size_t pos = map_name.find("_furnitures");
 			if (pos != std::string::npos)
 				map_name_basic = map_name.substr(0, pos);
-			std::string gt_image_filename = ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_name_basic + "_gt_segmentation.png";
+			std::string gt_image_filename = ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_name_basic + "_gt_segmentation.png";
 			std::cout << "Loading ground truth segmentation from: " << gt_image_filename << std::endl;
 			cv::Mat gt_map = cv::imread(gt_image_filename.c_str(),CV_8U);
 
@@ -752,7 +753,7 @@ int main(int argc, char **argv) {
 			cv::Mat gt_map_color;
 			EvaluationSegmentation es;
 			es.computePrecisionRecall(gt_map, gt_map_color, segmented_map, precision_micro, precision_macro, recall_micro, recall_macro, true);
-			std::string gt_image_filename_color = segmented_map_path + map_name + "_gt_color_segmentation.png"; //ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + "_gt_color_segmentation.png";
+			std::string gt_image_filename_color = segmented_map_path + map_name + "_gt_color_segmentation.png"; //ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + "_gt_color_segmentation.png";
 			cv::imwrite(gt_image_filename_color.c_str(), gt_map_color);
 
 			results[segmentation_index].at<double>(22, image_index) = recall_micro;

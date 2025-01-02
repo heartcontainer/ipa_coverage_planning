@@ -59,7 +59,7 @@
 
 #include <ipa_room_segmentation/room_segmentation_server.h>
 
-#include <ros/package.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <ipa_room_segmentation/meanshift2d.h>
 #include <ipa_room_segmentation/dynamic_reconfigure_client.h>
 
@@ -67,7 +67,7 @@
 
 static bool DEBUG_DISPLAYS=false;
 
-RoomSegmentationServer::RoomSegmentationServer(ros::NodeHandle nh, std::string name_of_the_action) :
+RoomSegmentationServer::RoomSegmentationServer(rclcpp::Node nh, std::string name_of_the_action) :
 	node_handle_(nh),
 	room_segmentation_server_(node_handle_, name_of_the_action, boost::bind(&RoomSegmentationServer::execute_segmentation_server, this, _1), false)
 {
@@ -87,15 +87,15 @@ RoomSegmentationServer::RoomSegmentationServer(ros::NodeHandle nh, std::string n
 	node_handle_.param("room_segmentation_algorithm", room_segmentation_algorithm_, 3);
 	std::cout << "room_segmentation/room_segmentation_algorithm = " << room_segmentation_algorithm_ << std::endl << std::endl;
 	if (room_segmentation_algorithm_ == 1)
-		ROS_INFO("You have chosen the morphological segmentation method.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the morphological segmentation method.");
 	else if (room_segmentation_algorithm_ == 2)
-		ROS_INFO("You have chosen the distance segmentation method.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the distance segmentation method.");
 	else if (room_segmentation_algorithm_ == 3)
-		ROS_INFO("You have chosen the voronoi segmentation method.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the voronoi segmentation method.");
 	else if (room_segmentation_algorithm_ == 4)
-		ROS_INFO("You have chosen the semantic segmentation method.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the semantic segmentation method.");
 	else if (room_segmentation_algorithm_ == 5)
-		ROS_INFO("You have chosen the voronoi random field segmentation method.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the voronoi random field segmentation method.");
 	std::cout << std::endl;
 
 	//if (room_segmentation_algorithm_ == 1) //set morphological parameters
@@ -138,7 +138,7 @@ RoomSegmentationServer::RoomSegmentationServer(ros::NodeHandle nh, std::string n
 		if(train_semantic_ == true)
 		{
 			AdaboostClassifier semantic_segmentation;
-			const std::string package_path = ros::package::getPath("ipa_room_segmentation");
+			const std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
 			const std::string classifier_default_path = package_path + "/common/files/classifier_models/";
 			const std::string classifier_path = "room_segmentation/classifier_models/";
 
@@ -152,7 +152,7 @@ RoomSegmentationServer::RoomSegmentationServer(ros::NodeHandle nh, std::string n
 			for (size_t i=0; i<semantic_training_maps_hallway_file_list_.size(); ++i)
 				std::cout << "   " << semantic_training_maps_hallway_file_list_[i] << std::endl << std::endl;
 
-			ROS_INFO("You have chosen to train the semantic segmentation method.\n");
+			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen to train the semantic segmentation method.\n");
 
 			// load the training maps, change to your maps when you want to train different ones
 			std::vector<cv::Mat> room_training_maps;
@@ -204,7 +204,7 @@ RoomSegmentationServer::RoomSegmentationServer(ros::NodeHandle nh, std::string n
 		if(train_vrf_ == true)
 		{
 			VoronoiRandomFieldSegmentation vrf_segmentation; //voronoi random field segmentation method
-			const std::string package_path = ros::package::getPath("ipa_room_segmentation");
+			const std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
 			std::string classifier_default_path = package_path + "/common/files/classifier_models/";
 			std::string classifier_storage_path = "room_segmentation/classifier_models/";
 			// vector that stores the possible labels that are drawn in the training maps. Order: room - hallway - doorway
@@ -231,7 +231,7 @@ RoomSegmentationServer::RoomSegmentationServer(ros::NodeHandle nh, std::string n
 			for (size_t i=0; i<vrf_voronoi_node_maps_file_list_.size(); ++i)
 				std::cout << "   " << vrf_voronoi_node_maps_file_list_[i] << std::endl << std::endl;
 
-			ROS_INFO("You have chosen to train the voronoi random field segmentation method.\n");
+			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen to train the voronoi random field segmentation method.\n");
 
 			// load the training maps
 			std::vector<cv::Mat> training_maps;
@@ -386,9 +386,9 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 		room_segmentation_algorithm_ = goal->room_segmentation_algorithm;
 
 	ros::Rate looping_rate(1);
-	ROS_INFO("*****Segmentation action server*****");
-	ROS_INFO("map resolution is : %f", goal->map_resolution);
-	ROS_INFO("segmentation algorithm: %d", room_segmentation_algorithm_);
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "*****Segmentation action server*****");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "map resolution is : %f", goal->map_resolution);
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "segmentation algorithm: %d", room_segmentation_algorithm_);
 
 	//converting the map msg in cv format
 	cv_bridge::CvImagePtr cv_ptr_obj;
@@ -408,13 +408,13 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 //		{
 //			room_lower_limit_morphological_ = 0.8;
 //			room_upper_limit_morphological_ = 47.0;
-//			ROS_INFO("You have chosen the morphologcial segmentation.");
+//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the morphologcial segmentation.");
 //		}
 //		if(room_segmentation_algorithm_ == 2) //distance
 //		{
 //			room_lower_limit_distance_ = 0.35;
 //			room_upper_limit_distance_ = 163.0;
-//			ROS_INFO("You have chosen the distance segmentation.");
+//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the distance segmentation.");
 //		}
 //		if(room_segmentation_algorithm_ == 3) //voronoi
 //		{
@@ -424,13 +424,13 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 //			max_iterations_ = 150;
 //			min_critical_point_distance_factor_ = 0.5; //1.6;
 //			max_area_for_merging_ = 12.5;
-//			ROS_INFO("You have chosen the Voronoi segmentation");
+//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the Voronoi segmentation");
 //		}
 //		if(room_segmentation_algorithm_ == 4) //semantic
 //		{
 //			room_lower_limit_semantic_ = 1.0;
 //			room_upper_limit_semantic_ = 1000000.;//23.0;
-//			ROS_INFO("You have chosen the semantic segmentation.");
+//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the semantic segmentation.");
 //		}
 //		if(room_segmentation_algorithm_ == 5) //voronoi random field
 //		{
@@ -441,7 +441,7 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 //			min_voronoi_random_field_node_distance_ = 7; // [pixel]
 //			max_voronoi_random_field_inference_iterations_ = 9000;
 //			max_area_for_merging_ = 12.5;
-//			ROS_INFO("You have chosen the voronoi random field segmentation.");
+//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the voronoi random field segmentation.");
 //		}
 //	}
 
@@ -467,7 +467,7 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 	else if (room_segmentation_algorithm_ == 4)
 	{
 		AdaboostClassifier semantic_segmentation; //semantic segmentation method
-		const std::string package_path = ros::package::getPath("ipa_room_segmentation");
+		const std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
 		const std::string classifier_default_path = package_path + "/common/files/classifier_models/";
 		const std::string classifier_path = "room_segmentation/classifier_models/";
 		semantic_segmentation.segmentMap(original_img, segmented_map, map_resolution, room_lower_limit_semantic_, room_upper_limit_semantic_,
@@ -476,7 +476,7 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 	else if (room_segmentation_algorithm_ == 5)
 	{
 		VoronoiRandomFieldSegmentation vrf_segmentation; //voronoi random field segmentation method
-		const std::string package_path = ros::package::getPath("ipa_room_segmentation");
+		const std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
 		std::string classifier_default_path = package_path + "/common/files/classifier_models/";
 		std::string classifier_storage_path = "room_segmentation/classifier_models/";
 		// vector that stores the possible labels that are drawn in the training maps. Order: room - hallway - doorway
@@ -545,7 +545,7 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 		return;
 	}
 
-	ROS_INFO("********Segmented the map************");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "********Segmented the map************");
 	//	looping_rate.sleep();
 
 	// get the min/max-values and the room-centers
@@ -847,7 +847,7 @@ void RoomSegmentationServer::execute_segmentation_server(const ipa_building_msgs
 	//publish result
 	room_segmentation_server_.setSucceeded(action_result);
 
-	ROS_INFO("********Map segmentation finished************");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "********Map segmentation finished************");
 }
 
 bool RoomSegmentationServer::extractAreaMapFromLabeledMap(ipa_building_msgs::ExtractAreaMapFromLabeledMapRequest& request, ipa_building_msgs::ExtractAreaMapFromLabeledMapResponse& response)
@@ -883,13 +883,16 @@ bool RoomSegmentationServer::extractAreaMapFromLabeledMap(ipa_building_msgs::Ext
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "room_segmentation_server");
+	rclcpp::init(argc, argv);
 
-	ros::NodeHandle nh("~");
+	auto node = std::make_shared<rclcpp::Node>("room_segmentation_server");
 
-	RoomSegmentationServer segmentationAlgorithmObj(nh, ros::this_node::getName());
-	ROS_INFO("Action Server for room segmentation has been initialized......");
-	ros::spin();
+	auto segmentationAlgorithmObj = std::make_shared<RoomSegmentationServer>(
+        node, node->get_name());
+	RCLCPP_INFO(node->get_logger(), "Action Server for room segmentation has been initialized......");
+	rclcpp::spin(node);
+
+    rclcpp::shutdown();
 
 	return 0;
 }

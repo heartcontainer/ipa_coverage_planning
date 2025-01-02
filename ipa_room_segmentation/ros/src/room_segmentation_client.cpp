@@ -57,8 +57,8 @@
  *
  ****************************************************************/
 
-#include <ros/ros.h>
-#include <ros/package.h>
+#include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <string>
 #include <vector>
@@ -68,9 +68,10 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-#include <actionlib/client/simple_action_client.h>
-#include <actionlib/client/terminal_state.h>
-#include <ipa_building_msgs/MapSegmentationAction.h>
+// #include <actionlib/client/simple_action_client.h>
+// #include <actionlib/client/terminal_state.h>
+#include <rclcpp_action/rclcpp_action.hpp>
+// #include <ipa_building_msgs/MapSegmentationAction.h>
 
 //#include <ipa_room_segmentation/RoomSegmentationConfig.h>
 #include <ipa_room_segmentation/dynamic_reconfigure_client.h>
@@ -79,7 +80,7 @@
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "room_segmentation_client");
-	ros::NodeHandle nh;
+	rclcpp::Node nh;
 
 	// map names
 	std::vector< std::string > map_names;
@@ -127,7 +128,7 @@ int main(int argc, char **argv)
 	for (size_t image_index = 0; image_index<map_names.size(); ++image_index)
 	{
 		// import maps
-		std::string image_filename = ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_names[image_index] + ".png";
+		std::string image_filename = ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_names[image_index] + ".png";
 		cv::Mat map = cv::imread(image_filename.c_str(), 0);
 		//make non-white pixels black
 		for (int y = 0; y < map.rows; y++)
@@ -158,10 +159,10 @@ int main(int argc, char **argv)
 		// create the action client --> "name of server"
 		// true causes the client to spin its own thread
 		actionlib::SimpleActionClient<ipa_building_msgs::MapSegmentationAction> ac("room_segmentation_server", true);
-		ROS_INFO("Waiting for action server to start.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_client"), "Waiting for action server to start.");
 		// wait for the action server to start
 		ac.waitForServer(); //will wait for infinite time
-		ROS_INFO("Action server started, sending goal.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation_client"), "Action server started, sending goal.");
 
 		// test dynamic reconfigure
 		DynamicReconfigureClient drc(nh, "room_segmentation_server/set_parameters", "room_segmentation_server/parameter_updates");
@@ -185,7 +186,7 @@ int main(int argc, char **argv)
 
 		if (finished_before_timeout)
 		{
-			ROS_INFO("Finished successfully!");
+			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_client"), "Finished successfully!");
 			ipa_building_msgs::MapSegmentationResultConstPtr result_seg = ac.getResult();
 
 			// display

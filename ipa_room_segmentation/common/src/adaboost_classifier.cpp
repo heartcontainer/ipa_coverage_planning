@@ -189,7 +189,7 @@ void AdaboostClassifier::trainClassifiers(const std::vector<cv::Mat>& room_train
 	//save the trained booster
 	hallway_boost_->save(filename_hallway.c_str());
 #endif
-	ROS_INFO("Done hallway classifiers.");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.adaboost_classifier"), "Done hallway classifiers.");
 
 	//*************room***************
 	std::string filename_room = classifier_storage_path + "semantic_room_boost.xml";
@@ -214,8 +214,8 @@ void AdaboostClassifier::trainClassifiers(const std::vector<cv::Mat>& room_train
 
 	//set the trained-variabel true, so the labeling-algorithm knows the classifiers have been trained already
 	trained_ = true;
-	ROS_INFO("Done room classifiers.");
-	ROS_INFO("Finished training the algorithm.");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.adaboost_classifier"), "Done room classifiers.");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.adaboost_classifier"), "Finished training the algorithm.");
 }
 
 void AdaboostClassifier::segmentMap(const cv::Mat& map_to_be_labeled, cv::Mat& segmented_map, double map_resolution_from_subscription,
@@ -238,7 +238,7 @@ void AdaboostClassifier::segmentMap(const cv::Mat& map_to_be_labeled, cv::Mat& s
 	//		colour into the map that hasn't been used already.
 
 	cv::Mat original_map_to_be_labeled = map_to_be_labeled.clone();
-	ROS_INFO("Starting to label the map.");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.adaboost_classifier"), "Starting to label the map.");
 	//***********************I. check if classifiers has already been trained*****************************
 	if (!trained_) //classifiers hasn't been trained before so they should be loaded
 	{
@@ -266,7 +266,7 @@ void AdaboostClassifier::segmentMap(const cv::Mat& map_to_be_labeled, cv::Mat& s
 		loadBoost(hallway_boost_,filename_hallway);
 
 		trained_ = true;
-		ROS_INFO("Loaded training results.");
+		RCLCPP_INFO(rclcpp::get_logger("room_segmentation.adaboost_classifier"), "Loaded training results.");
 	}
 
 	//*************** II. Go trough each Point and label it as room or hallway.**************************
@@ -508,5 +508,5 @@ void AdaboostClassifier::segmentMap(const cv::Mat& map_to_be_labeled, cv::Mat& s
 			}
 		}
 	}
-	ROS_INFO("Finished Labeling the map.");
+	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.adaboost_classifier"), "Finished Labeling the map.");
 }

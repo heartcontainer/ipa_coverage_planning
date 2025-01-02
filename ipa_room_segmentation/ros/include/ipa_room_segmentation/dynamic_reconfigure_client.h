@@ -60,20 +60,20 @@
 #ifndef _DYNAMIC_RECONFIGURE_CLIENT_H_
 #define _DYNAMIC_RECONFIGURE_CLIENT_H_
 
-#include <ros/ros.h>
-#include <ros/subscriber.h>
+#include <rclcpp/rclcpp.hpp>
+// #include <ros/subscriber.h>
 
 #include <boost/thread/mutex.hpp>
 
-#include <dynamic_reconfigure/DoubleParameter.h>
-#include <dynamic_reconfigure/IntParameter.h>
-#include <dynamic_reconfigure/Reconfigure.h>
-#include <dynamic_reconfigure/Config.h>
+// #include <dynamic_reconfigure/DoubleParameter.h>
+// #include <dynamic_reconfigure/IntParameter.h>
+// #include <dynamic_reconfigure/Reconfigure.h>
+// #include <dynamic_reconfigure/Config.h>
 
 class DynamicReconfigureClient
 {
 public:
-	DynamicReconfigureClient(ros::NodeHandle& nh, const std::string& dynamic_reconfigure_service_name, const std::string& parameter_updates_topic)
+	DynamicReconfigureClient(rclcpp::Node& nh, const std::string& dynamic_reconfigure_service_name, const std::string& parameter_updates_topic)
 	: dynamic_reconfigure_current_config_received_(false), node_handle_(nh), dynamic_reconfigure_service_name_(dynamic_reconfigure_service_name)
 	{
 		dynamic_reconfigure_sub_ = node_handle_.subscribe(parameter_updates_topic, 1, &DynamicReconfigureClient::dynamic_reconfigure_current_config_callback, this);
@@ -236,7 +236,7 @@ private:
 	}
 
 	// parameters
-	ros::NodeHandle node_handle_;
+	rclcpp::Node node_handle_;
 	ros::Subscriber dynamic_reconfigure_sub_;
 	dynamic_reconfigure::Config dynamic_reconfigure_config_;
 	bool dynamic_reconfigure_current_config_received_;
