@@ -192,7 +192,7 @@ struct compLabelsByIndices
 // Struct used to sort contours regarding their size
 struct compContoursSize
 {
-	bool operator()(std::vector<cv::Point> const &a, std::vector<cv::Point> const &b)
+	bool operator()(std::vector<cv::Point> const &a, std::vector<cv::Point> const &b) const
 	{
 		return (cv::contourArea(a) >= cv::contourArea(b));
 	}
@@ -1731,10 +1731,10 @@ void VoronoiRandomFieldSegmentation::segmentMap(const cv::Mat& original_map, cv:
 
 		// save the contours that are not holes (check with hierarchy --> [{0,1,2,3}]={next contour (same level), previous contour (same level), child contour, parent contour})
 		//  --> save everything with hierarchy[3] == -1
-		for(size_t contour = 0; contour < map_contours.size(); ++contour)
-			if(hierarchy[contour][3] == -1 && map_contours.size() > 1){
-				// segments.insert(map_contours[contour]);
-				// TODO
+		for (size_t contour = 0; contour < map_contours.size(); ++contour)
+			if (hierarchy[contour][3] == -1 && map_contours.size() > 1)
+			{
+				segments.insert(map_contours[contour]);
 			}
 	}
 
