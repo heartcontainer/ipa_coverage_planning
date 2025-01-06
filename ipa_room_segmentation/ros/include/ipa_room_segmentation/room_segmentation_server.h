@@ -77,18 +77,22 @@
 #include <vector>
 
 
-// #include <ipa_building_msgs/MapSegmentationAction.h>
-// #include <ipa_building_msgs/RoomInformation.h>
-// #include <ipa_building_msgs/ExtractAreaMapFromLabeledMap.h>
+#include <ipa_building_msgs/action/map_segmentation.hpp>
+#include <ipa_building_msgs/msg/room_information.hpp>
+#include <ipa_building_msgs/srv/extract_area_map_from_labeled_map.hpp>
 
-// #include <ipa_room_segmentation/distance_segmentation.h>
-// #include <ipa_room_segmentation/morphological_segmentation.h>
-// #include <ipa_room_segmentation/voronoi_segmentation.h>
-// #include <ipa_room_segmentation/adaboost_classifier.h>
-// #include <ipa_room_segmentation/voronoi_random_field_segmentation.h>
+#include <ipa_room_segmentation/distance_segmentation.h>
+#include <ipa_room_segmentation/morphological_segmentation.h>
+#include <ipa_room_segmentation/voronoi_segmentation.h>
+#include <ipa_room_segmentation/adaboost_classifier.h>
+#include <ipa_room_segmentation/voronoi_random_field_segmentation.h>
+#include <rclcpp_action/rclcpp_action.hpp>
 
-class RoomSegmentationServer
+class RoomSegmentationServer : public rclcpp::Node
 {
+public:
+	using MapSegmentation = ipa_building_msgs::action::MapSegmentation;
+  	using GoalHandleMapSegmentation = rclcpp_action::ServerGoalHandle<MapSegmentation>;
 protected:
 
 	// parameters
@@ -139,30 +143,42 @@ protected:
 	}
 
 	//This is the execution function used by action server
-	void execute_segmentation_server(const ipa_building_msgs::MapSegmentationGoalConstPtr &goal);
+	rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &uuid, std::shared_ptr<const MapSegmentation::Goal> goal)
+	{
+		RCLCPP_INFO(this->get_logger(), "Goal is received..");
+		return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+	}
+	rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle)
+	{
+		return rclcpp_action::CancelResponse::ACCEPT;
+	}
+	void handle_accepted(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle);
+	void execute(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle);
 
 	//Callback for dynamic reconfigure server
-	void dynamic_reconfigure_callback(ipa_room_segmentation::RoomSegmentationConfig &config, uint32_t level);
+	// void dynamic_reconfigure_callback(ipa_room_segmentation::RoomSegmentationConfig &config, uint32_t level);
 
 	// service for generating a map of one single room from a labeled map
 	// The request message provides a segmented map which consists of cells with label 0 for inaccessible areas and other number from 1 to N
 	// for labeling membership with one of the N segmented areas.
 	// The return message shall deliver the same map but with only one area (segment_of_interest) labeled as 255 and the remainder labeled
 	// as inaccessible with 0.
-	bool extractAreaMapFromLabeledMap(ipa_building_msgs::ExtractAreaMapFromLabeledMapRequest& request, ipa_building_msgs::ExtractAreaMapFromLabeledMapResponse& response);
+	bool extractAreaMapFromLabeledMap(const ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Request::SharedPtr request, ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Response::SharedPtr response);
 
 	//!!Important!!
 	// define the Nodehandle before the action server, or else the server won't start
 	//
-	rclcpp::Node node_handle_;
-	ros::Publisher map_pub_;
-	ros::ServiceServer extract_area_map_from_labeled_map_server_;
-	actionlib::SimpleActionServer<ipa_building_msgs::MapSegmentationAction> room_segmentation_server_;
-	dynamic_reconfigure::Server<ipa_room_segmentation::RoomSegmentationConfig> room_segmentation_dynamic_reconfigure_server_;
+	// rclcpp::Node node_handle_;
+	rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
+	rclcpp::Service<ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap>::SharedPtr extract_area_map_from_labeled_map_server_;
+
+	// actionlib::SimpleActionServer<ipa_building_msgs::MapSegmentationAction> room_segmentation_server_;
+	rclcpp_action::Server<MapSegmentation>::SharedPtr action_server_;
+	// dynamic_reconfigure::Server<ipa_room_segmentation::RoomSegmentationConfig> room_segmentation_dynamic_reconfigure_server_;
 
 public:
 	//initialize the action-server
-	RoomSegmentationServer(rclcpp::Node nh, std::string name_of_the_action);
+	explicit RoomSegmentationServer(const rclcpp::NodeOptions& options);
 
 	//Default destructor for the class
 	~RoomSegmentationServer(void)

@@ -8,12 +8,12 @@
 // #include <actionlib/client/simple_action_client.h>
 // #include <actionlib/client/terminal_state.h>
 #include <rclcpp_action/rclcpp_action.hpp>
-// #include <ipa_building_msgs/MapSegmentationAction.h>
+#include <ipa_building_msgs/action/map_segmentation.hpp>
 // #include <sensor_msgs/image_encodings.h>
 
 #include <ipa_room_segmentation/timer.h>
 #include <ipa_room_segmentation/evaluation_segmentation.h>
-#include <ipa_room_segmentation/dynamic_reconfigure_client.h>
+// #include <ipa_room_segmentation/dynamic_reconfigure_client.h>
 
 #include <iostream>
 #include <list>
@@ -406,92 +406,50 @@ int segmentationNameToNumber(const std::string name)
 
 
 int main(int argc, char **argv) {
-	ros::init(argc, argv, "evaluation");
-	rclcpp::Node n;
-//	ros::Subscriber semantic_labeler = n.Subscribe("Laser_scanner", 1000, segmentation_algorithm);
-	RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Evaluation of the segmented maps. Calculates some Parameters describing the rooms.");
-//	ros::spin();
+    rclcpp::init(argc, argv);
 
-	double map_resolution = 0.05;
+    auto node = rclcpp::Node::make_shared("evaluation");
 
-	std::vector<std::string> segmentation_names;
-	segmentation_names.push_back("1morphological");
-	segmentation_names.push_back("2distance");
-	segmentation_names.push_back("3voronoi");
-	segmentation_names.push_back("4semantic");
-	segmentation_names.push_back("5vrf");
+    RCLCPP_INFO(node->get_logger(), "Evaluation of the segmented maps. Calculates some parameters describing the rooms.");
 
-//	std::string map_name = "NLB";
-////		"lab_ipa" //done
-////		"lab_c_scan" //done
-////		"Freiburg52_scan" //done
-////		"Freiburg79_scan" //done
-////		"lab_b_scan" //done
-////		"lab_intel" //done
-////		"Freiburg101_scan" //done
-////		"lab_d_scan" //done
-////		"lab_f_scan" //done
-////		"lab_a_scan" //done
-////		"NLB" //done
-	std::vector< std::string > map_names;
-	map_names.push_back("lab_ipa");
-	map_names.push_back("lab_c_scan");
-	map_names.push_back("Freiburg52_scan");
-	map_names.push_back("Freiburg79_scan");
-	map_names.push_back("lab_b_scan");
-	map_names.push_back("lab_intel");
-	map_names.push_back("Freiburg101_scan");
-	map_names.push_back("lab_d_scan");
-	map_names.push_back("lab_f_scan");
-	map_names.push_back("lab_a_scan");
-	map_names.push_back("NLB");
-	map_names.push_back("office_a");
-	map_names.push_back("office_b");
-	map_names.push_back("office_c");
-	map_names.push_back("office_d");
-	map_names.push_back("office_e");
-	map_names.push_back("office_f");
-	map_names.push_back("office_g");
-	map_names.push_back("office_h");
-	map_names.push_back("office_i");
-	map_names.push_back("lab_ipa_furnitures");
-	map_names.push_back("lab_c_scan_furnitures");
-	map_names.push_back("Freiburg52_scan_furnitures");
-	map_names.push_back("Freiburg79_scan_furnitures");
-	map_names.push_back("lab_b_scan_furnitures");
-	map_names.push_back("lab_intel_furnitures");
-	map_names.push_back("Freiburg101_scan_furnitures");
-	map_names.push_back("lab_d_scan_furnitures");
-	map_names.push_back("lab_f_scan_furnitures");
-	map_names.push_back("lab_a_scan_furnitures");
-	map_names.push_back("NLB_furnitures");
-	map_names.push_back("office_a_furnitures");
-	map_names.push_back("office_b_furnitures");
-	map_names.push_back("office_c_furnitures");
-	map_names.push_back("office_d_furnitures");
-	map_names.push_back("office_e_furnitures");
-	map_names.push_back("office_f_furnitures");
-	map_names.push_back("office_g_furnitures");
-	map_names.push_back("office_h_furnitures");
-	map_names.push_back("office_i_furnitures");
+    double map_resolution = 0.05;
 
-	const std::string segmented_map_path = "room_segmentation/"; //ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/segmented_maps/";
-	const std::string command = "mkdir -p " + segmented_map_path;
-	int return_value = system(command.c_str());
+    std::vector<std::string> segmentation_names = {
+        "1morphological",
+        "2distance",
+        "3voronoi",
+        "4semantic",
+        "5vrf"
+    };
 
-	// matrices to store results
-	// evaluation criteria are stored row-wise, i.e. each row stores a criterion
-	// - algorithm runtime in seconds [row 0]
-	// - number segments [row 1]
-	// - segment area (mean, min/max, std) [rows 2-5]
-	// - segment perimeter (mean, min/max, std) [rows 6-9]
-	// - area/perimeter compactness (mean, min/max, std) [rows 10-13]
-	// - area/bounding box compactness (mean, min/max, std) [rows 14-17]
-	// - spherical/ellipsoid measure (mean, min/max, std) [rows 18-21]
-	// - fit with giving ground truth (average of recalls, average recall, average of precisions, average precision) [rows 22-25]
-	std::vector<cv::Mat> results(segmentation_names.size());
-	for (size_t i=0; i<segmentation_names.size(); ++i)
-		results[i] = cv::Mat::zeros(26, map_names.size(), CV_64FC1);
+    std::vector<std::string> map_names = {
+        "lab_ipa", "lab_c_scan", "Freiburg52_scan", "Freiburg79_scan", 
+        "lab_b_scan", "lab_intel", "Freiburg101_scan", "lab_d_scan", 
+        "lab_f_scan", "lab_a_scan", "NLB", "office_a", "office_b", 
+        "office_c", "office_d", "office_e", "office_f", "office_g", 
+        "office_h", "office_i", "lab_ipa_furnitures", "lab_c_scan_furnitures", 
+        "Freiburg52_scan_furnitures", "Freiburg79_scan_furnitures", 
+        "lab_b_scan_furnitures", "lab_intel_furnitures", "Freiburg101_scan_furnitures", 
+        "lab_d_scan_furnitures", "lab_f_scan_furnitures", "lab_a_scan_furnitures", 
+        "NLB_furnitures", "office_a_furnitures", "office_b_furnitures", 
+        "office_c_furnitures", "office_d_furnitures", "office_e_furnitures", 
+        "office_f_furnitures", "office_g_furnitures", "office_h_furnitures", 
+        "office_i_furnitures"
+    };
+
+    const std::string segmented_map_path = "room_segmentation/"; //ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/segmented_maps/";
+    const std::string command = "mkdir -p " + segmented_map_path;
+    int return_value = system(command.c_str());
+
+    if (return_value != 0) {
+        RCLCPP_ERROR(node->get_logger(), "Failed to create directory: %s", segmented_map_path.c_str());
+    }
+
+    // Matrices to store results
+    std::vector<cv::Mat> results(segmentation_names.size());
+    for (size_t i = 0; i < segmentation_names.size(); ++i) {
+        results[i] = cv::Mat::zeros(26, map_names.size(), CV_64FC1);
+    }
 
 	// loop through map files
 	for (size_t image_index = 0; image_index<map_names.size(); ++image_index)
@@ -530,7 +488,7 @@ int main(int argc, char **argv) {
 
 			// do the segmentation
 			// ===================
-			sensor_msgs::Image labeling;
+			sensor_msgs::msg::Image labeling;
 			cv_bridge::CvImage cv_image;
 		//	cv_image.header.stamp = ros::Time::now();
 			cv_image.encoding = "mono8";
@@ -538,60 +496,20 @@ int main(int argc, char **argv) {
 			cv_image.toImageMsg(labeling);
 			// create the action client --> "name of server"
 			// true causes the client to spin its own thread
-			actionlib::SimpleActionClient<ipa_building_msgs::MapSegmentationAction> ac("room_segmentation_server", true);
+			// actionlib::SimpleActionClient<ipa_building_msgs::MapSegmentationAction> ac("room_segmentation_server", true);
+			// Action client
+			auto action_client = rclcpp_action::create_client<ipa_building_msgs::action::MapSegmentation>(
+				node, "room_segmentation_server");
 
 			RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Waiting for action server to start.");
-			// wait for the action server to start
-			ac.waitForServer(); //will wait for infinite time
+			if (!action_client->wait_for_action_server(std::chrono::seconds(10))) {
+				RCLCPP_ERROR(node->get_logger(), "Action server not available after waiting.");
+				return 1;
+			}
 			RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Action server started, sending goal.");
 
-			// send dynamic reconfigure config
-			DynamicReconfigureClient drc(n, "room_segmentation_server/set_parameters", "room_segmentation_server/parameter_updates");
-			const int room_segmentation_algorithm = segmentationNameToNumber(segmentation_names[segmentation_index]);
-			drc.setConfig("room_segmentation_algorithm", room_segmentation_algorithm);
-			if(room_segmentation_algorithm == 1) //morpho
-			{
-				drc.setConfig("room_area_factor_lower_limit_morphological", 0.8);
-				drc.setConfig("room_area_factor_upper_limit_morphological", 47.0);
-				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the morphological segmentation.");
-			}
-			if(room_segmentation_algorithm == 2) //distance
-			{
-				drc.setConfig("room_area_factor_lower_limit_distance", 0.35);
-				drc.setConfig("room_area_factor_upper_limit_distance", 163.0);
-				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the distance segmentation.");
-			}
-			if(room_segmentation_algorithm == 3) //voronoi
-			{
-				drc.setConfig("room_area_factor_lower_limit_voronoi", 0.1);	//1.53;
-				drc.setConfig("room_area_factor_upper_limit_voronoi", 1000000.);	//120.0;
-				drc.setConfig("voronoi_neighborhood_index", 280);
-				drc.setConfig("max_iterations", 150);
-				drc.setConfig("min_critical_point_distance_factor", 0.5); //1.6;
-				drc.setConfig("max_area_for_merging", 12.5);
-				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the Voronoi segmentation");
-			}
-			if(room_segmentation_algorithm == 4) //semantic
-			{
-				drc.setConfig("room_area_factor_lower_limit_semantic", 1.0);
-				drc.setConfig("room_area_factor_upper_limit_semantic", 1000000.);//23.0;
-				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the semantic segmentation.");
-			}
-			if(room_segmentation_algorithm == 5) //voronoi random field
-			{
-				drc.setConfig("room_area_lower_limit_voronoi_random", 1.53); //1.53
-				drc.setConfig("room_area_upper_limit_voronoi_random", 1000000.); //1000000.0
-				drc.setConfig("max_iterations", 150);
-				drc.setConfig("voronoi_random_field_epsilon_for_neighborhood", 7);
-				drc.setConfig("min_neighborhood_size", 5);
-				drc.setConfig("min_voronoi_random_field_node_distance", 7.0); // [pixel]
-				drc.setConfig("max_voronoi_random_field_inference_iterations", 9000);
-				drc.setConfig("max_area_for_merging", 12.5);
-				RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "You have chosen the Voronoi random field segmentation.");
-			}
-
 			// send a goal to the action
-			ipa_building_msgs::MapSegmentationGoal goal;
+			auto goal = ipa_building_msgs::action::MapSegmentation::Goal();
 			goal.input_map = labeling;
 			goal.map_origin.position.x = 0;
 			goal.map_origin.position.y = 0;
@@ -601,10 +519,10 @@ int main(int argc, char **argv) {
 			//goal.room_segmentation_algorithm = segmentationNameToNumber(segmentation_names[segmentation_index]);
 			goal.robot_radius = 0.3;
 			Timer tim;
-			ac.sendGoal(goal);
+			action_client->sendGoal(goal);
 
 			//wait for the action to return
-			bool finished_before_timeout = ac.waitForResult();
+			bool finished_before_timeout = action_client.waitForResult(ros::Duration());
 			if (!finished_before_timeout)
 				continue;
 
@@ -612,7 +530,7 @@ int main(int argc, char **argv) {
 			RCLCPP_INFO(rclcpp::get_logger("evaluation_numeric_properties"), "Finished successfully!");
 
 			// retrieve segmentation
-			ipa_building_msgs::MapSegmentationResultConstPtr result = ac.getResult();
+			ipa_building_msgs::MapSegmentationResultConstPtr result = action_client.getResult();
 			std::cout << "number of found doorways: " << result->doorway_points.size() << std::endl;
 			cv_bridge::CvImagePtr cv_ptr_seq = cv_bridge::toCvCopy(result->segmented_map, sensor_msgs::image_encodings::TYPE_32SC1);
 			cv::Mat segmented_map = cv_ptr_seq->image;

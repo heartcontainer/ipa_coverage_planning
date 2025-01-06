@@ -90,24 +90,24 @@ target_link_libraries(${PROJECT_NAME} ${OpenMP_LIBS})
 add_executable(room_segmentation_server ros/src/room_segmentation_server.cpp)
 ament_target_dependencies(room_segmentation_server ${RUN_PACKAGES})
 target_compile_options(room_segmentation_server PRIVATE ${OpenMP_FLAGS})
-target_link_libraries(room_segmentation_server ${PROJECT_NAME} ${OpenMP_LIBS} dlib::dlib)
+target_link_libraries(room_segmentation_server ${PROJECT_NAME} ${OpenMP_LIBS} dlib::dlib ${Boost_FILESYSTEM_LIBRARY})
 
 add_executable(room_segmentation_client ros/src/room_segmentation_client.cpp)
 ament_target_dependencies(room_segmentation_client ${RUN_PACKAGES})
 target_link_libraries(room_segmentation_client ${PROJECT_NAME})
 
-add_executable(evaluation
-  ros/src/evaluation_numeric_properties.cpp
-  common/src/evaluation_segmentation.cpp)
-ament_target_dependencies(evaluation ${RUN_PACKAGES})
-target_link_libraries(evaluation ${PROJECT_NAME})
+# add_executable(evaluation
+#   ros/src/evaluation_numeric_properties.cpp
+#   common/src/evaluation_segmentation.cpp)
+# ament_target_dependencies(evaluation ${RUN_PACKAGES})
+# target_link_libraries(evaluation ${PROJECT_NAME})
 
 # Install targets
 install(TARGETS
   ${PROJECT_NAME}
   room_segmentation_server
   room_segmentation_client
-  evaluation
+  # evaluation
   DESTINATION lib/${PROJECT_NAME}
 )
 
