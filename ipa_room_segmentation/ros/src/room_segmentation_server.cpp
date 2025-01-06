@@ -61,6 +61,7 @@
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <ipa_room_segmentation/meanshift2d.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 // #include <ipa_room_segmentation/dynamic_reconfigure_client.h>
 
 // #include <boost/algorithm/string.hpp>
@@ -77,48 +78,253 @@ RoomSegmentationServer::RoomSegmentationServer(const rclcpp::NodeOptions &option
 		std::bind(&RoomSegmentationServer::handle_cancel, this, std::placeholders::_1),
 		std::bind(&RoomSegmentationServer::handle_accepted, this, std::placeholders::_1));
 
-	// Parameter initialization
-	// this->declare_parameter("train_semantic", false);
-	// this->declare_parameter("load_semantic_features", false);
-	// this->declare_parameter("train_vrf", false);
-	// this->declare_parameter("room_segmentation_algorithm", 3);
+	// Declare the parameter with a default value
+	this->declare_parameter<bool>("train_semantic", false);
+	this->declare_parameter<bool>("load_semantic_features", false);
+	this->declare_parameter<bool>("train_vrf", false);
 
-	// // Algorithm-specific parameters
-	// this->declare_parameter("room_area_factor_upper_limit_morphological", 47.0);
-	// this->declare_parameter("room_area_factor_lower_limit_morphological", 0.8);
-	// this->declare_parameter("room_area_factor_upper_limit_distance", 163.0);
-	// this->declare_parameter("room_area_factor_lower_limit_distance", 0.35);
-	// this->declare_parameter("room_area_factor_upper_limit_voronoi", 120.0);
-	// this->declare_parameter("room_area_factor_lower_limit_voronoi", 1.53);
-	// this->declare_parameter("voronoi_neighborhood_index", 280);
-	// this->declare_parameter("max_iterations", 150);
-	// this->declare_parameter("min_critical_point_distance_factor", 1.6);
-	// this->declare_parameter("max_area_for_merging", 12.5);
+	this->declare_parameter<int>("room_segmentation_algorithm", 3);
+	this->declare_parameter<double>("room_area_factor_upper_limit_morphological", 47.0);
+	this->declare_parameter<double>("room_area_factor_lower_limit_morphological", 0.8);
+	this->declare_parameter<double>("room_area_factor_upper_limit_distance", 163.0);
+	this->declare_parameter<double>("room_area_factor_lower_limit_distance", 0.35);
+	this->declare_parameter<double>("room_area_factor_upper_limit_voronoi", 120.0);
+	this->declare_parameter<double>("room_area_factor_lower_limit_voronoi", 1.53);
+	this->declare_parameter<int>("voronoi_neighborhood_index", 280);
+	this->declare_parameter<int>("max_iterations", 150);
+	this->declare_parameter<double>("min_critical_point_distance_factor", 1.6);
+	this->declare_parameter<double>("max_area_for_merging", 12.5);
+	this->declare_parameter<double>("room_area_factor_upper_limit_semantic", 23.0);
+	this->declare_parameter<double>("room_area_factor_lower_limit_semantic", 1.0);
+	this->declare_parameter<std::vector<std::string>>("semantic_training_maps_room_file_list", std::vector<std::string>{});
+	this->declare_parameter<std::vector<std::string>>("semantic_training_maps_hallway_file_list", std::vector<std::string>{});
+	this->declare_parameter<double>("room_area_upper_limit_voronoi_random", 10000.0);
+	this->declare_parameter<double>("room_area_lower_limit_voronoi_random", 1.53);
+	this->declare_parameter<int>("voronoi_random_field_epsilon_for_neighborhood", 7);
+	this->declare_parameter<int>("min_neighborhood_size", 5);
+	this->declare_parameter<double>("min_voronoi_random_field_node_distance", 7.0);
+	this->declare_parameter<int>("max_voronoi_random_field_inference_iterations", 9000);
+	this->declare_parameter<std::vector<std::string>>("vrf_original_maps_file_list", std::vector<std::string>{});
+	this->declare_parameter<std::vector<std::string>>("vrf_training_maps_file_list", std::vector<std::string>{});
+	this->declare_parameter<std::vector<std::string>>("vrf_voronoi_maps_file_list", std::vector<std::string>{});
+	this->declare_parameter<std::vector<std::string>>("vrf_voronoi_node_maps_file_list", std::vector<std::string>{});
+	this->declare_parameter<double>("room_area_factor_upper_limit_passthrough", 10000000.0);
+	this->declare_parameter<double>("room_area_factor_lower_limit_passthrough", 0.0);
+	this->declare_parameter<bool>("display_segmented_map", false);
+	this->declare_parameter<bool>("publish_segmented_map", false);
 
-	// // Additional parameters for other algorithms
-	// this->declare_parameter("room_area_upper_limit_voronoi_random", 10000.0);
-	// this->declare_parameter("room_area_lower_limit_voronoi_random", 1.53);
-	// this->declare_parameter("voronoi_random_field_epsilon_for_neighborhood", 7);
-	// this->declare_parameter("min_neighborhood_size", 5);
-	// this->declare_parameter("min_voronoi_random_field_node_distance", 7.0);
-	// this->declare_parameter("max_voronoi_random_field_inference_iterations", 9000);
+	// parameters to check if the algorithms need to be trained (not part of dynamic reconfigure)
+	this->get_parameter("train_semantic", train_semantic_);
+	std::cout << "room_segmentation/train_semantic_ = " << train_semantic_ << std::endl;
+	this->get_parameter("load_semantic_features", load_semantic_features_);
+	std::cout << "room_segmentation/load_semantic_features = " << load_semantic_features_ << std::endl;
+	this->get_parameter("train_vrf", train_vrf_);
+	std::cout << "room_segmentation/train_vrf_ = " << train_vrf_ << std::endl;
 
-	// // Display/publish segmented map
-	// this->declare_parameter("display_segmented_map", false);
-	// this->declare_parameter("publish_segmented_map", false);
+	// TODO: dynamic reconfigure
+	// room_segmentation_dynamic_reconfigure_server_.setCallback(boost::bind(&RoomSegmentationServer::dynamic_reconfigure_callback, this, _1, _2));
 
-	// // Log loaded parameters
-	// train_semantic_ = this->get_parameter("train_semantic").as_bool();
-	// RCLCPP_INFO(this->get_logger(), "Train semantic: %s", train_semantic_ ? "true" : "false");
+	// parameters
+	std::cout << "\n------------------------------------\nRoom Segmentation Parameters:\n------------------------------------\n";
+	this->get_parameter("room_segmentation_algorithm", room_segmentation_algorithm_);
+	std::cout << "room_segmentation/room_segmentation_algorithm = " << room_segmentation_algorithm_ << std::endl
+			  << std::endl;
+	if (room_segmentation_algorithm_ == 1)
+		RCLCPP_INFO(this->get_logger(), "You have chosen the morphological segmentation method.");
+	else if (room_segmentation_algorithm_ == 2)
+		RCLCPP_INFO(this->get_logger(), "You have chosen the distance segmentation method.");
+	else if (room_segmentation_algorithm_ == 3)
+		RCLCPP_INFO(this->get_logger(), "You have chosen the voronoi segmentation method.");
+	else if (room_segmentation_algorithm_ == 4)
+		RCLCPP_INFO(this->get_logger(), "You have chosen the semantic segmentation method.");
+	else if (room_segmentation_algorithm_ == 5)
+		RCLCPP_INFO(this->get_logger(), "You have chosen the voronoi random field segmentation method.");
+	std::cout << std::endl;
 
-	// load_semantic_features_ = this->get_parameter("load_semantic_features").as_bool();
-	// RCLCPP_INFO(this->get_logger(), "Load semantic features: %s", load_semantic_features_ ? "true" : "false");
+	// if (room_segmentation_algorithm_ == 1) //set morphological parameters
+	{
+		this->get_parameter("room_area_factor_upper_limit_morphological", room_upper_limit_morphological_);
+		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_morphological_ << std::endl;
+		this->get_parameter("room_area_factor_lower_limit_morphological", room_lower_limit_morphological_);
+		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_morphological_ << std::endl;
+	}
+	// if (room_segmentation_algorithm_ == 2) //set distance parameters
+	{
+		this->get_parameter("room_area_factor_upper_limit_distance", room_upper_limit_distance_);
+		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_distance_ << std::endl;
+		this->get_parameter("room_area_factor_lower_limit_distance", room_lower_limit_distance_);
+		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_distance_ << std::endl;
+	}
+	// if (room_segmentation_algorithm_ == 3) //set voronoi parameters
+	{
+		this->get_parameter("room_area_factor_upper_limit_voronoi", room_upper_limit_voronoi_);
+		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_voronoi_ << std::endl;
+		this->get_parameter("room_area_factor_lower_limit_voronoi", room_lower_limit_voronoi_);
+		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_voronoi_ << std::endl;
+		this->get_parameter("voronoi_neighborhood_index", voronoi_neighborhood_index_);
+		std::cout << "room_segmentation/voronoi_neighborhood_index = " << voronoi_neighborhood_index_ << std::endl;
+		this->get_parameter("max_iterations", max_iterations_);
+		std::cout << "room_segmentation/max_iterations = " << max_iterations_ << std::endl;
+		this->get_parameter("min_critical_point_distance_factor", min_critical_point_distance_factor_);
+		std::cout << "room_segmentation/min_critical_point_distance_factor = " << min_critical_point_distance_factor_ << std::endl;
+		this->get_parameter("max_area_for_merging", max_area_for_merging_);
+		std::cout << "room_segmentation/max_area_for_merging = " << max_area_for_merging_ << std::endl;
+	}
+	// if (room_segmentation_algorithm_ == 4 || train_semantic_ == true) //set semantic parameters
+	{
+		this->get_parameter("room_area_factor_upper_limit_semantic", room_upper_limit_semantic_);
+		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_semantic_ << std::endl;
+		this->get_parameter("room_area_factor_lower_limit_semantic", room_lower_limit_semantic_);
+		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_semantic_ << std::endl;
 
-	// train_vrf_ = this->get_parameter("train_vrf").as_bool();
-	// RCLCPP_INFO(this->get_logger(), "Train VRF: %s", train_vrf_ ? "true" : "false");
+		// train the algorithm if wanted
+		if (train_semantic_ == true)
+		{
+			AdaboostClassifier semantic_segmentation;
+			const std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
+			const std::string classifier_default_path = package_path + "/common/files/classifier_models/";
+			const std::string classifier_path = "room_segmentation/classifier_models/";
 
-	// room_segmentation_algorithm_ = this->get_parameter("room_segmentation_algorithm").as_int();
-	// RCLCPP_INFO(this->get_logger(), "Room segmentation algorithm: %d", room_segmentation_algorithm_);
+			// load files to train the algorithm
+			this->get_parameter("semantic_training_maps_room_file_list", semantic_training_maps_room_file_list_);
+			std::cout << "room_segmentation/semantic_training_maps_room_file_list = \n";
+			for (size_t i = 0; i < semantic_training_maps_room_file_list_.size(); ++i)
+				std::cout << "   " << semantic_training_maps_room_file_list_[i] << std::endl;
+			this->get_parameter("semantic_training_maps_hallway_file_list", semantic_training_maps_hallway_file_list_);
+			std::cout << "room_segmentation/semantic_training_maps_hallway_file_list = \n";
+			for (size_t i = 0; i < semantic_training_maps_hallway_file_list_.size(); ++i)
+				std::cout << "   " << semantic_training_maps_hallway_file_list_[i] << std::endl
+						  << std::endl;
+
+			RCLCPP_INFO(this->get_logger(), "You have chosen to train the semantic segmentation method.\n");
+
+			// load the training maps, change to your maps when you want to train different ones
+			std::vector<cv::Mat> room_training_maps;
+			for (size_t i = 0; i < semantic_training_maps_room_file_list_.size(); ++i)
+			{
+				cv::Mat training_map = cv::imread(semantic_training_maps_room_file_list_[i], 0);
+				room_training_maps.push_back(training_map);
+			}
+
+			std::vector<cv::Mat> hallway_training_maps;
+			for (size_t i = 0; i < semantic_training_maps_hallway_file_list_.size(); ++i)
+			{
+				cv::Mat training_map = cv::imread(semantic_training_maps_hallway_file_list_[i], 0);
+				hallway_training_maps.push_back(training_map);
+			}
+
+			// train the algorithm
+			semantic_segmentation.trainClassifiers(room_training_maps, hallway_training_maps, classifier_path, load_semantic_features_);
+		}
+	}
+	// if (room_segmentation_algorithm_ == 5 || train_vrf_ == true) //set voronoi random field parameters
+	{
+		this->get_parameter("room_area_upper_limit_voronoi_random", room_upper_limit_voronoi_random_);
+		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_voronoi_random_ << std::endl;
+
+		this->get_parameter("room_area_lower_limit_voronoi_random", room_lower_limit_voronoi_random_);
+		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_voronoi_random_ << std::endl;
+
+		this->get_parameter("voronoi_random_field_epsilon_for_neighborhood", voronoi_random_field_epsilon_for_neighborhood_);
+		std::cout << "room_segmentation/voronoi_random_field_epsilon_for_neighborhood = " << voronoi_random_field_epsilon_for_neighborhood_ << std::endl;
+
+		this->get_parameter("min_neighborhood_size", min_neighborhood_size_);
+		std::cout << "room_segmentation/min_neighborhood_size = " << min_neighborhood_size_ << std::endl;
+
+		this->get_parameter("min_voronoi_random_field_node_distance", min_voronoi_random_field_node_distance_);
+		std::cout << "room_segmentation/min_voronoi_random_field_node_distance = " << min_voronoi_random_field_node_distance_ << std::endl;
+
+		this->get_parameter("max_voronoi_random_field_inference_iterations", max_voronoi_random_field_inference_iterations_);
+		std::cout << "room_segmentation/max_voronoi_random_field_inference_iterations = " << max_voronoi_random_field_inference_iterations_ << std::endl;
+
+		this->get_parameter("max_iterations", max_iterations_);
+		std::cout << "room_segmentation/max_iterations = " << max_iterations_ << std::endl;
+
+		this->get_parameter("max_area_for_merging", max_area_for_merging_);
+		std::cout << "room_segmentation/max_area_for_merging = " << max_area_for_merging_ << std::endl;
+
+		// train the algorithm if wanted
+		if (train_vrf_ == true)
+		{
+			VoronoiRandomFieldSegmentation vrf_segmentation; // voronoi random field segmentation method
+			const std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
+			std::string classifier_default_path = package_path + "/common/files/classifier_models/";
+			std::string classifier_storage_path = "room_segmentation/classifier_models/";
+			// vector that stores the possible labels that are drawn in the training maps. Order: room - hallway - doorway
+			std::vector<uint> possible_labels(3);
+			possible_labels[0] = 77;
+			possible_labels[1] = 115;
+			possible_labels[2] = 179;
+
+			// read given paths to training files
+			this->get_parameter("vrf_original_maps_file_list", vrf_original_maps_file_list_);
+			std::cout << "room_segmentation/vrf_original_maps_file_list = \n";
+			for (size_t i = 0; i < vrf_original_maps_file_list_.size(); ++i)
+				std::cout << "   " << vrf_original_maps_file_list_[i] << std::endl;
+			this->get_parameter("vrf_training_maps_file_list", vrf_training_maps_file_list_);
+			std::cout << "room_segmentation/vrf_training_maps_file_list = \n";
+			for (size_t i = 0; i < vrf_training_maps_file_list_.size(); ++i)
+				std::cout << "   " << vrf_training_maps_file_list_[i] << std::endl;
+			this->get_parameter("vrf_voronoi_maps_file_list", vrf_voronoi_maps_file_list_);
+			std::cout << "room_segmentation/vrf_voronoi_maps_file_list = \n";
+			for (size_t i = 0; i < vrf_voronoi_maps_file_list_.size(); ++i)
+				std::cout << "   " << vrf_voronoi_maps_file_list_[i] << std::endl;
+			this->get_parameter("vrf_voronoi_node_maps_file_list", vrf_voronoi_node_maps_file_list_);
+			std::cout << "room_segmentation/vrf_voronoi_node_maps_file_list = \n";
+			for (size_t i = 0; i < vrf_voronoi_node_maps_file_list_.size(); ++i)
+				std::cout << "   " << vrf_voronoi_node_maps_file_list_[i] << std::endl
+						  << std::endl;
+
+			RCLCPP_INFO(this->get_logger(), "You have chosen to train the voronoi random field segmentation method.\n");
+
+			// load the training maps
+			std::vector<cv::Mat> training_maps;
+			for (size_t i = 0; i < vrf_training_maps_file_list_.size(); ++i)
+			{
+				cv::Mat training_map = cv::imread(vrf_training_maps_file_list_[i], 0);
+				training_maps.push_back(training_map);
+			}
+
+			// load the voronoi maps
+			std::vector<cv::Mat> voronoi_maps;
+			for (size_t i = 0; i < vrf_voronoi_maps_file_list_.size(); ++i)
+			{
+				cv::Mat training_map = cv::imread(vrf_voronoi_maps_file_list_[i], 0);
+				voronoi_maps.push_back(training_map);
+			}
+
+			// load the voronoi-nodes maps
+			std::vector<cv::Mat> voronoi_node_maps;
+			for (size_t i = 0; i < vrf_voronoi_node_maps_file_list_.size(); ++i)
+			{
+				cv::Mat training_map = cv::imread(vrf_voronoi_node_maps_file_list_[i], 0);
+				voronoi_node_maps.push_back(training_map);
+			}
+
+			// load the original maps
+			std::vector<cv::Mat> original_maps;
+			for (size_t i = 0; i < vrf_original_maps_file_list_.size(); ++i)
+			{
+				cv::Mat training_map = cv::imread(vrf_original_maps_file_list_[i], 0);
+				original_maps.push_back(training_map);
+			}
+
+			// train the algorithm
+			vrf_segmentation.trainAlgorithms(original_maps, training_maps, voronoi_maps, voronoi_node_maps, possible_labels, classifier_storage_path,
+											 voronoi_random_field_epsilon_for_neighborhood_, max_iterations_, min_neighborhood_size_, min_voronoi_random_field_node_distance_);
+		}
+	}
+	// if (room_segmentation_algorithm_ == 99) //set passthrough parameters
+	{
+		this->get_parameter("room_area_factor_upper_limit_passthrough", room_upper_limit_passthrough_);
+		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_passthrough_ << std::endl;
+		this->get_parameter("room_area_factor_lower_limit_passthrough", room_lower_limit_passthrough_);
+		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_passthrough_ << std::endl;
+	}
+	this->get_parameter("display_segmented_map", display_segmented_map_);
+	std::cout << "room_segmentation/display_segmented_map_ = " << display_segmented_map_ << std::endl;
+	this->get_parameter("publish_segmented_map", publish_segmented_map_);
+	std::cout << "room_segmentation/publish_segmented_map_ = " << publish_segmented_map_ << std::endl;
 
 	// Publishers
 	map_pub_ = this->create_publisher<nav_msgs::msg::OccupancyGrid>("segmented_map", 1);
