@@ -311,7 +311,7 @@ RoomSegmentationServer::RoomSegmentationServer(const rclcpp::NodeOptions &option
 
 			// train the algorithm
 			vrf_segmentation.trainAlgorithms(original_maps, training_maps, voronoi_maps, voronoi_node_maps, possible_labels, classifier_storage_path,
-											 voronoi_random_field_epsilon_for_neighborhood_, max_iterations_, min_neighborhood_size_, min_voronoi_random_field_node_distance_);
+					voronoi_random_field_epsilon_for_neighborhood_, max_iterations_, min_neighborhood_size_, min_voronoi_random_field_node_distance_);
 		}
 	}
 	// if (room_segmentation_algorithm_ == 99) //set passthrough parameters
@@ -438,9 +438,9 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 		room_segmentation_algorithm_ = goal->room_segmentation_algorithm;
 
 	// ros::Rate looping_rate(1);
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "*****Segmentation action server*****");
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "map resolution is : %f", goal->map_resolution);
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "segmentation algorithm: %d", room_segmentation_algorithm_);
+	RCLCPP_INFO(this->get_logger(), "*****Segmentation action server*****");
+	RCLCPP_INFO(this->get_logger(), "map resolution is : %f", goal->map_resolution);
+	RCLCPP_INFO(this->get_logger(), "segmentation algorithm: %d", room_segmentation_algorithm_);
 
 	// converting the map msg in cv format
 	cv_bridge::CvImagePtr cv_ptr_obj;
@@ -452,50 +452,50 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 	const cv::Point2d map_origin(goal->map_origin.position.x, goal->map_origin.position.y);
 
 	// these preset values are deactivated because they would override the dynamic reconfigure configuration
-	//	const int room_segmentation_algorithm_value = room_segmentation_algorithm_;
-	//	if (goal->room_segmentation_algorithm > 0 && goal->room_segmentation_algorithm < 6)
-	//	{
-	//		room_segmentation_algorithm_ = goal->room_segmentation_algorithm;
-	//		if(room_segmentation_algorithm_ == 1) //morpho
-	//		{
-	//			room_lower_limit_morphological_ = 0.8;
-	//			room_upper_limit_morphological_ = 47.0;
-	//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the morphologcial segmentation.");
-	//		}
-	//		if(room_segmentation_algorithm_ == 2) //distance
-	//		{
-	//			room_lower_limit_distance_ = 0.35;
-	//			room_upper_limit_distance_ = 163.0;
-	//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the distance segmentation.");
-	//		}
-	//		if(room_segmentation_algorithm_ == 3) //voronoi
-	//		{
-	//			room_lower_limit_voronoi_ = 0.1;	//1.53;
-	//			room_upper_limit_voronoi_ = 1000000.;	//120.0;
-	//			voronoi_neighborhood_index_ = 280;
-	//			max_iterations_ = 150;
-	//			min_critical_point_distance_factor_ = 0.5; //1.6;
-	//			max_area_for_merging_ = 12.5;
-	//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the Voronoi segmentation");
-	//		}
-	//		if(room_segmentation_algorithm_ == 4) //semantic
-	//		{
-	//			room_lower_limit_semantic_ = 1.0;
-	//			room_upper_limit_semantic_ = 1000000.;//23.0;
-	//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the semantic segmentation.");
-	//		}
-	//		if(room_segmentation_algorithm_ == 5) //voronoi random field
-	//		{
-	//			room_lower_limit_voronoi_random_ = 1.53; //1.53
-	//			room_upper_limit_voronoi_random_ = 1000000.; //1000000.0
-	//			voronoi_random_field_epsilon_for_neighborhood_ = 7;
-	//			min_neighborhood_size_ = 5;
-	//			min_voronoi_random_field_node_distance_ = 7; // [pixel]
-	//			max_voronoi_random_field_inference_iterations_ = 9000;
-	//			max_area_for_merging_ = 12.5;
-	//			RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "You have chosen the voronoi random field segmentation.");
-	//		}
-	//	}
+//	const int room_segmentation_algorithm_value = room_segmentation_algorithm_;
+//	if (goal->room_segmentation_algorithm > 0 && goal->room_segmentation_algorithm < 6)
+//	{
+//		room_segmentation_algorithm_ = goal->room_segmentation_algorithm;
+//		if(room_segmentation_algorithm_ == 1) //morpho
+//		{
+//			room_lower_limit_morphological_ = 0.8;
+//			room_upper_limit_morphological_ = 47.0;
+	//			RCLCPP_INFO(this->get_logger(), "You have chosen the morphologcial segmentation.");
+//		}
+//		if(room_segmentation_algorithm_ == 2) //distance
+//		{
+//			room_lower_limit_distance_ = 0.35;
+//			room_upper_limit_distance_ = 163.0;
+	//			RCLCPP_INFO(this->get_logger(), "You have chosen the distance segmentation.");
+//		}
+//		if(room_segmentation_algorithm_ == 3) //voronoi
+//		{
+//			room_lower_limit_voronoi_ = 0.1;	//1.53;
+//			room_upper_limit_voronoi_ = 1000000.;	//120.0;
+//			voronoi_neighborhood_index_ = 280;
+//			max_iterations_ = 150;
+//			min_critical_point_distance_factor_ = 0.5; //1.6;
+//			max_area_for_merging_ = 12.5;
+	//			RCLCPP_INFO(this->get_logger(), "You have chosen the Voronoi segmentation");
+//		}
+//		if(room_segmentation_algorithm_ == 4) //semantic
+//		{
+//			room_lower_limit_semantic_ = 1.0;
+//			room_upper_limit_semantic_ = 1000000.;//23.0;
+	//			RCLCPP_INFO(this->get_logger(), "You have chosen the semantic segmentation.");
+//		}
+//		if(room_segmentation_algorithm_ == 5) //voronoi random field
+//		{
+//			room_lower_limit_voronoi_random_ = 1.53; //1.53
+//			room_upper_limit_voronoi_random_ = 1000000.; //1000000.0
+//			voronoi_random_field_epsilon_for_neighborhood_ = 7;
+//			min_neighborhood_size_ = 5;
+//			min_voronoi_random_field_node_distance_ = 7; // [pixel]
+//			max_voronoi_random_field_inference_iterations_ = 9000;
+//			max_area_for_merging_ = 12.5;
+	//			RCLCPP_INFO(this->get_logger(), "You have chosen the voronoi random field segmentation.");
+//		}
+//	}
 
 	// segment the given map
 	cv::Mat segmented_map;
@@ -537,9 +537,9 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 		possible_labels[2] = 179;
 		doorway_points_.clear();
 		vrf_segmentation.segmentMap(original_img, segmented_map, voronoi_random_field_epsilon_for_neighborhood_, max_iterations_,
-									min_neighborhood_size_, possible_labels, min_voronoi_random_field_node_distance_,
+				min_neighborhood_size_, possible_labels, min_voronoi_random_field_node_distance_,
 									(display_segmented_map_ && DEBUG_DISPLAYS), classifier_storage_path, classifier_default_path, max_voronoi_random_field_inference_iterations_,
-									map_resolution, room_lower_limit_voronoi_random_, room_upper_limit_voronoi_random_, max_area_for_merging_, &doorway_points_);
+				map_resolution, room_lower_limit_voronoi_random_, room_upper_limit_voronoi_random_, max_area_for_merging_, &doorway_points_);
 	}
 	else if (room_segmentation_algorithm_ == 99)
 	{
@@ -552,8 +552,8 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 		original_img_eroded.convertTo(segmented_map, CV_32SC1, 256, 0); // occupied space = 0, free space = 65280
 		int label_index = 1;
 
-		//		cv::imshow("original_img", original_img_eroded);
-		//		cv::waitKey();
+//		cv::imshow("original_img", original_img_eroded);
+//		cv::waitKey();
 
 		for (int y = 0; y < segmented_map.rows; y++)
 		{
@@ -644,15 +644,15 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 		}
 	}
 	// get centers for each room
-	//	for (size_t idx = 0; idx < room_centers_x_values.size(); ++idx)
-	//	{
-	//		if (max_x_value_of_the_room[idx] != 0 && max_y_value_of_the_room[idx] != 0 && min_x_value_of_the_room[idx] != 100000000 && min_y_value_of_the_room[idx] != 100000000)
-	//		{
-	//			room_centers_x_values[idx] = (min_x_value_of_the_room[idx] + max_x_value_of_the_room[idx]) / 2;
-	//			room_centers_y_values[idx] = (min_y_value_of_the_room[idx] + max_y_value_of_the_room[idx]) / 2;
-	//			cv::circle(segmented_map, cv::Point(room_centers_x_values[idx], room_centers_y_values[idx]), 2, cv::Scalar(200*256), CV_FILLED);
-	//		}
-	//	}
+//	for (size_t idx = 0; idx < room_centers_x_values.size(); ++idx)
+//	{
+//		if (max_x_value_of_the_room[idx] != 0 && max_y_value_of_the_room[idx] != 0 && min_x_value_of_the_room[idx] != 100000000 && min_y_value_of_the_room[idx] != 100000000)
+//		{
+//			room_centers_x_values[idx] = (min_x_value_of_the_room[idx] + max_x_value_of_the_room[idx]) / 2;
+//			room_centers_y_values[idx] = (min_y_value_of_the_room[idx] + max_y_value_of_the_room[idx]) / 2;
+//			cv::circle(segmented_map, cv::Point(room_centers_x_values[idx], room_centers_y_values[idx]), 2, cv::Scalar(200*256), CV_FILLED);
+//		}
+//	}
 	// use distance transform and mean shift to find good room centers that are reachable by the robot
 	// first check whether a robot radius shall be applied to obstacles in order to exclude room center points that are not reachable by the robot
 	cv::Mat segmented_map_copy = segmented_map;
@@ -780,7 +780,7 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 					if (indexed_map.at<int>(v, u) == i)
 						color_segmented_map.at<cv::Vec3b>(v, u) = color;
 		}
-		//		cv::Mat disp = segmented_map.clone();
+//		cv::Mat disp = segmented_map.clone();
 		for (size_t index = 0; index < room_centers_x_values.size(); ++index)
 #if CV_MAJOR_VERSION <= 3
 			cv::circle(color_segmented_map, cv::Point(room_centers_x_values[index], room_centers_y_values[index]), 2, cv::Scalar(256), CV_FILLED);
@@ -899,7 +899,7 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 	// publish result
 	// room_segmentation_server_.setSucceeded(action_result);
 
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation_server"), "********Map segmentation finished************");
+	RCLCPP_INFO(this->get_logger(), "********Map segmentation finished************");
 }
 
 bool RoomSegmentationServer::extractAreaMapFromLabeledMap(const ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Request::SharedPtr request, ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Response::SharedPtr response)

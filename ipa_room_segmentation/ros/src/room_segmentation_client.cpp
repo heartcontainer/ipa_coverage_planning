@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     rclcpp::init(argc, argv);
     auto node = rclcpp::Node::make_shared("room_segmentation_client");
 
-    // map names
+	// map names
     std::vector<std::string> map_names = {
         "lab_ipa", "lab_c_scan", "Freiburg52_scan", "Freiburg79_scan", "lab_b_scan",
         "lab_intel", "Freiburg101_scan", "lab_d_scan", "lab_f_scan", "lab_a_scan",
@@ -90,41 +90,42 @@ int main(int argc, char **argv)
         "office_f_furnitures", "office_g_furnitures", "office_h_furnitures", "office_i_furnitures"};
 
     for (const auto &map_name : map_names)
-    {
-        // import maps
+	{
+		// import maps
         std::string image_filename = ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + ".png";
-        cv::Mat map = cv::imread(image_filename.c_str(), 0);
+		cv::Mat map = cv::imread(image_filename.c_str(), 0);
 
         // make non-white pixels black
-        for (int y = 0; y < map.rows; y++)
-        {
-            for (int x = 0; x < map.cols; x++)
-            {
+		for (int y = 0; y < map.rows; y++)
+		{
+			for (int x = 0; x < map.cols; x++)
+			{
                 // find not reachable regions and make them black
-                if (map.at<unsigned char>(y, x) < 250)
-                {
-                    map.at<unsigned char>(y, x) = 0;
-                }
-                else
-                {
-                    map.at<unsigned char>(y, x) = 255;
-                }
-            }
-        }
+				if (map.at<unsigned char>(y, x) < 250)
+				{
+					map.at<unsigned char>(y, x) = 0;
+				}
+				//else make it white
+				else
+				{
+					map.at<unsigned char>(y, x) = 255;
+				}
+			}
+		}
 
         // prepare image message
         sensor_msgs::msg::Image labeling;
-        cv_bridge::CvImage cv_image;
-        cv_image.encoding = "mono8";
-        cv_image.image = map;
-        cv_image.toImageMsg(labeling);
+		cv_bridge::CvImage cv_image;
+		cv_image.encoding = "mono8";
+		cv_image.image = map;
+		cv_image.toImageMsg(labeling);
 
         // Action client
         auto action_client = rclcpp_action::create_client<ipa_building_msgs::action::MapSegmentation>(
             node, "room_segmentation_server");
 
         RCLCPP_INFO(node->get_logger(), "Waiting for action server to start.");
-        if (!action_client->wait_for_action_server(std::chrono::seconds(10)))
+		if (!action_client->wait_for_action_server(std::chrono::seconds(10)))
         {
             RCLCPP_ERROR(node->get_logger(), "Action server not available after waiting.");
             return 1;
@@ -132,15 +133,19 @@ int main(int argc, char **argv)
 
         RCLCPP_INFO(node->get_logger(), "Action server started, sending goal.");
 
-        // send a goal to the action
+        // TODO: test dynamic reconfigure
+		// DynamicReconfigureClient drc(nh, "room_segmentation_server/set_parameters", "room_segmentation_server/parameter_updates");
+		// drc.setConfig("room_segmentation_algorithm", 5);
+
+		// send a goal to the action
         auto goal = ipa_building_msgs::action::MapSegmentation::Goal();
-        goal.input_map = labeling;
-        goal.map_origin.position.x = 0;
-        goal.map_origin.position.y = 0;
-        goal.map_resolution = 0.05;
-        goal.return_format_in_meter = false;
-        goal.return_format_in_pixel = true;
-        goal.robot_radius = 0.4;
+		goal.input_map = labeling;
+		goal.map_origin.position.x = 0;
+		goal.map_origin.position.y = 0;
+		goal.map_resolution = 0.05;
+		goal.return_format_in_meter = false;
+		goal.return_format_in_pixel = true;
+		goal.robot_radius = 0.4;
 
         // send goal to action server
         auto send_goal_options = rclcpp_action::Client<ipa_building_msgs::action::MapSegmentation>::SendGoalOptions();
@@ -150,46 +155,46 @@ int main(int argc, char **argv)
             {
                 RCLCPP_INFO(rclcpp::get_logger("room_segmentation_client"), "Finished successfully!");
                 // Process the result here
-                // display
-                cv_bridge::CvImagePtr cv_ptr_obj;
+			// display
+			cv_bridge::CvImagePtr cv_ptr_obj;
                 cv_ptr_obj = cv_bridge::toCvCopy(result.result->segmented_map, sensor_msgs::image_encodings::TYPE_32SC1);
-                cv::Mat segmented_map = cv_ptr_obj->image;
-                cv::Mat colour_segmented_map = segmented_map.clone();
-                colour_segmented_map.convertTo(colour_segmented_map, CV_8U);
-                cv::cvtColor(colour_segmented_map, colour_segmented_map, CV_GRAY2BGR);
+			cv::Mat segmented_map = cv_ptr_obj->image;
+			cv::Mat colour_segmented_map = segmented_map.clone();
+			colour_segmented_map.convertTo(colour_segmented_map, CV_8U);
+			cv::cvtColor(colour_segmented_map, colour_segmented_map, CV_GRAY2BGR);
                 for (size_t i = 1; i <= result.result->room_information_in_pixel.size(); ++i)
-                {
+			{
                     // choose random color for each room
-                    int blue = (rand() % 250) + 1;
-                    int green = (rand() % 250) + 1;
-                    int red = (rand() % 250) + 1;
+				int blue = (rand() % 250) + 1;
+				int green = (rand() % 250) + 1;
+				int red = (rand() % 250) + 1;
                     for (size_t u = 0; u < segmented_map.rows; ++u)
-                    {
+				{
                         for (size_t v = 0; v < segmented_map.cols; ++v)
-                        {
+					{
                             if (segmented_map.at<int>(u, v) == i)
-                            {
+						{
                                 colour_segmented_map.at<cv::Vec3b>(u, v)[0] = blue;
                                 colour_segmented_map.at<cv::Vec3b>(u, v)[1] = green;
                                 colour_segmented_map.at<cv::Vec3b>(u, v)[2] = red;
-                            }
-                        }
-                    }
-                }
+						}
+					}
+				}
+			}
                 // draw the room centers into the map
                 for (size_t i = 0; i < result.result->room_information_in_pixel.size(); ++i)
-                {
+			{
                     cv::Point current_center(result.result->room_information_in_pixel[i].room_center.x, result.result->room_information_in_pixel[i].room_center.y);
 #if CV_MAJOR_VERSION <= 3
                     cv::circle(colour_segmented_map, current_center, 2, CV_RGB(0, 0, 255), CV_FILLED);
 #else
                     cv::circle(colour_segmented_map, current_center, 2, CV_RGB(0, 0, 255), cv::FILLED);
 #endif
-                }
+			}
 
-                cv::imshow("segmentation", colour_segmented_map);
-                cv::waitKey();
-            }
+			cv::imshow("segmentation", colour_segmented_map);
+			cv::waitKey();
+		}
             else
             {
                 RCLCPP_ERROR(rclcpp::get_logger("room_segmentation_client"), "Action failed.");
@@ -203,5 +208,5 @@ int main(int argc, char **argv)
     }
 
     rclcpp::shutdown();
-    return 0;
+	return 0;
 }

@@ -61,14 +61,8 @@
 #define _DYNAMIC_RECONFIGURE_CLIENT_H_
 
 #include <rclcpp/rclcpp.hpp>
-// #include <ros/subscriber.h>
 
 #include <boost/thread/mutex.hpp>
-
-// #include <dynamic_reconfigure/DoubleParameter.h>
-// #include <dynamic_reconfigure/IntParameter.h>
-// #include <dynamic_reconfigure/Reconfigure.h>
-// #include <dynamic_reconfigure/Config.h>
 
 class DynamicReconfigureClient
 {
