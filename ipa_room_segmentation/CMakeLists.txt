@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(ipa_room_segmentation)
 
-# build with c++11
+# build with c++17
 add_compile_options(-std=c++17)
 
 # Set dependencies
@@ -15,10 +15,6 @@ set(RUN_PACKAGES
   sensor_msgs
   opengm
 )
-
-# set(BUILD_PACKAGES
-#   ${RUN_PACKAGES}
-# )
 
 find_package(cv_bridge REQUIRED)
 find_package(ipa_building_msgs REQUIRED)
@@ -40,23 +36,6 @@ if(OPENMP_FOUND)
   set(OpenMP_LIBS gomp)
 endif()
 
-# find_package(${RUN_PACKAGES} REQUIRED)
-
-###################################
-## Generate dynamic reconfigure ##
-###################################
-# Dynamic reconfigure equivalent
-# find_package(dynamic_reconfigure REQUIRED)
-
-###################################
-## Declare ament specific config ##
-###################################
-
-# ament_export_dependencies(${RUN_PACKAGES})
-
-###########
-## Build ##
-###########
 # Include directories
 include_directories(
   common/include
@@ -124,6 +103,7 @@ install(DIRECTORY ros/include/${PROJECT_NAME}/
 
 # Install launch and yaml files
 install(DIRECTORY ros/launch
-  DESTINATION share/${PROJECT_NAME}/ros
-  FILES_MATCHING PATTERN "*.launch"
+  DESTINATION share/${PROJECT_NAME}
 )
+
+ament_package()

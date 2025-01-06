@@ -279,7 +279,7 @@ void EvaluationSegmentation::computePrecisionRecall(const cv::Mat& gt_map, cv::M
 int main(int argc, char** argv)
 {
 	ros::init(argc, argv, "evaluation_seg");
-	rclcpp::Node n;
+	ros::NodeHandle n;
 
 //	if (argc < 2)
 //	{
@@ -329,7 +329,7 @@ int main(int argc, char** argv)
 	map_names.push_back("office_h_furnitures");
 	map_names.push_back("office_i_furnitures");
 
-	const std::string segmented_map_path = "room_segmentation/"; //ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/segmented_maps/";
+	const std::string segmented_map_path = "room_segmentation/"; //ros::package::getPath("ipa_room_segmentation") + "/common/files/segmented_maps/";
 
 	for (size_t image_index = 0; image_index<map_names.size(); ++image_index)
 	{
@@ -339,7 +339,7 @@ int main(int argc, char** argv)
 		std::size_t pos = map_name.find("_furnitures");
 		if (pos != std::string::npos)
 			map_name = map_name.substr(0, pos);
-		std::string gt_image_filename = ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + "_gt_segmentation.png";
+		std::string gt_image_filename = ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + "_gt_segmentation.png";
 		//std::cout << gt_image_filename << "\n" << seg_image_filename << std::endl;
 		cv::Mat gt_map = cv::imread(gt_image_filename.c_str(),CV_8U);
 		cv::Mat segmented_map = cv::imread(seg_image_filename.c_str());
@@ -358,7 +358,7 @@ int main(int argc, char** argv)
 		EvaluationSegmentation es;
 		es.computePrecisionRecall(gt_map, gt_map_color, segmented_map, precision_micro, precision_macro, recall_micro, recall_macro, true);
 		std::cout << recall_micro << "\t" << precision_micro << "\t" << recall_macro << "\t" << precision_macro << std::endl;
-		std::string gt_image_filename_color = segmented_map_path + map_name + "_gt_color_segmentation.png"; //ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + "_gt_color_segmentation.png";
+		std::string gt_image_filename_color = segmented_map_path + map_name + "_gt_color_segmentation.png"; //ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_name + "_gt_color_segmentation.png";
 		cv::imwrite(gt_image_filename_color.c_str(), gt_map_color);
 	}
 //
