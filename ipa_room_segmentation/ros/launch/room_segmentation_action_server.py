@@ -97,7 +97,6 @@ def generate_launch_description():
                         "vrf_voronoi_node_maps_file_list": vrf_voronoi_node_maps_file_list
                     },
                 ],
-                # emulate_tty=True,
                 respawn=True,
                 respawn_delay=2.0,
             ),

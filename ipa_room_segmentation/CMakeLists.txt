@@ -106,7 +106,7 @@ install(DIRECTORY common/files
 )
 
 # Install launch and yaml files
-install(DIRECTORY ros/launch
+install(DIRECTORY ros/launch ros/test
   DESTINATION share/${PROJECT_NAME}
 )
 
