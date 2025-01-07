@@ -84,8 +84,12 @@ public:
             this,
             "/room_segmentation/room_segmentation_server");
 
+        parameter_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this, "/room_segmentation/room_segmentation_server");
+
         this->declare_parameter<std::string>("image_path", "");
+        this->declare_parameter<int>("room_segmentation_algorithm", 3);
         this->get_parameter("image_path", this->image_path_);
+        this->get_parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_);
 
         if (this->image_path_.empty())
         {
@@ -95,8 +99,27 @@ public:
         else
         {
             RCLCPP_INFO(this->get_logger(), "Using image: %s", this->image_path_.c_str());
+            update_parameters();
             send_goal();
         }
+    }
+
+    void update_parameters()
+    {
+        while (!parameter_client_->wait_for_service(std::chrono::seconds(2)))
+        {
+            RCLCPP_INFO(this->get_logger(), "Waiting for parameter service to become available...");
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Parameter service is ready.");
+
+        auto results = parameter_client_->set_parameters_atomically(
+            {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_)});
+
+        rclcpp::spin_until_future_complete(
+            this->get_node_base_interface(),
+            results);
+        RCLCPP_INFO(this->get_logger(), "Updated room_segmentation_algorithm to %d", this->room_segmentation_algorithm_);
     }
 
     sensor_msgs::msg::Image create_image_message()
@@ -156,7 +179,9 @@ public:
 
 private:
     rclcpp_action::Client<MapSegmentation>::SharedPtr client_ptr_;
+    std::shared_ptr<rclcpp::AsyncParametersClient> parameter_client_;
     std::string image_path_;
+    int room_segmentation_algorithm_;
 
     void goal_response_callback(const GoalHandleMapSegmentation::SharedPtr &future)
     {

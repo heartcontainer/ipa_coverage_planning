@@ -19,6 +19,7 @@ def generate_launch_description():
                 parameters=[
                     {
                         "image_path": default_map,
+                        # "room_segmentation_algorithm": 5,
                     },
                 ],
                 output="screen",
