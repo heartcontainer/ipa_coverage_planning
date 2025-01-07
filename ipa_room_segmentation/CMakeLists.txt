@@ -101,6 +101,10 @@ install(DIRECTORY ros/include/${PROJECT_NAME}/
   FILES_MATCHING PATTERN "*.h"
 )
 
+install(DIRECTORY common/files
+  DESTINATION share/${PROJECT_NAME}/common
+)
+
 # Install launch and yaml files
 install(DIRECTORY ros/launch
   DESTINATION share/${PROJECT_NAME}

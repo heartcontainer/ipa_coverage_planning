@@ -122,7 +122,7 @@ int main(int argc, char **argv)
 
         // Action client
         auto action_client = rclcpp_action::create_client<ipa_building_msgs::action::MapSegmentation>(
-            node, "room_segmentation_server");
+            node, "/room_segmentation/room_segmentation_server");
 
         RCLCPP_INFO(node->get_logger(), "Waiting for action server to start.");
 		if (!action_client->wait_for_action_server(std::chrono::seconds(10)))
