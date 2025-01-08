@@ -380,7 +380,7 @@ void EnergyFunctionalExplorator::getExplorationPath(const cv::Mat& room_map, std
 
 	// ****************** IV. Map the found fov path to the robot path ******************
 	//mapPath(room_map, path, fov_poses, robot_to_fov_vector, map_resolution, map_origin, starting_position);
-	ROS_INFO("Starting to map from field of view pose to robot pose");
+	std::cout << "Starting to map from field of view pose to robot pose" << std::endl;
 	cv::Point robot_starting_position = (fov_poses.size()>0 ? cv::Point(fov_poses[0].x, fov_poses[0].y) : starting_position);
 	cv::Mat inflated_room_map;
 	cv::erode(room_map, inflated_room_map, cv::Mat(), cv::Point(-1, -1), half_grid_spacing_as_int);

@@ -112,17 +112,11 @@ install(
 )
 
 # Install include directories
-install(DIRECTORY common/include/ DESTINATION include/${PROJECT_NAME}
-  FILES_MATCHING PATTERN "*.h"
-)
-
-install(DIRECTORY ros/include/${PROJECT_NAME}/ DESTINATION include/${PROJECT_NAME}
-  FILES_MATCHING PATTERN "*.h"
-)
+install(DIRECTORY common/include/${PROJECT_NAME}/ DESTINATION include/${PROJECT_NAME})
+install(DIRECTORY ros/include/${PROJECT_NAME}/ DESTINATION include/${PROJECT_NAME})
 
 # Install launch files
-install(DIRECTORY ros/launch
-  DESTINATION share/${PROJECT_NAME}/launch
-)
+install(DIRECTORY ros/launch DESTINATION share/${PROJECT_NAME}/launch)
 
+ament_export_include_directories(include)
 ament_package()

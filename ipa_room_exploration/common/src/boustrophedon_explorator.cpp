@@ -49,7 +49,7 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 		const double grid_spacing_in_pixel, const double grid_obstacle_offset, const double path_eps, const int cell_visiting_order,
 		const bool plan_for_footprint, const Eigen::Matrix<float, 2, 1> robot_to_fov_vector, const double min_cell_area, const int max_deviation_from_track)
 {
-	ROS_INFO("Planning the boustrophedon path trough the room.");
+	std::cout << "Planning the boustrophedon path trough the room." << std::endl;
 	const int grid_spacing_as_int = (int)std::floor(grid_spacing_in_pixel); // convert fov-radius to int
 	const int half_grid_spacing_as_int = (int)std::floor(0.5*grid_spacing_in_pixel); // convert fov-radius to int
 	const int min_cell_width = half_grid_spacing_as_int + 2.*grid_obstacle_offset/map_resolution;
@@ -65,7 +65,7 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 	computeCellDecompositionWithRotation(room_map, map_resolution, min_cell_area, min_cell_width, 0., R, bbox, rotated_room_map, cell_polygons, polygon_centers);
 	// does not work so well: findBestCellDecomposition(room_map, map_resolution, min_cell_area, R, bbox, rotated_room_map, cell_polygons, polygon_centers);
 
-	ROS_INFO("Found the cells in the given map.");
+	std::cout << "Found the cells in the given map." << std::endl;
 
 
 	// *********************** IV. Determine the cell paths. ***********************
@@ -118,7 +118,7 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 	}
 
 	// go trough the cells [in optimal visiting order] and determine the boustrophedon paths
-	ROS_INFO("Starting to get the paths for each cell, number of cells: %d", (int)cell_polygons.size());
+	std::cout << "Starting to get the paths for each cell, number of cells: " << (int)cell_polygons.size() << std::endl;
 	std::cout << "Boustrophedon grid_spacing_as_int=" << grid_spacing_as_int << std::endl;
 	cv::Point robot_pos = rotated_starting_point;	// point that keeps track of the last point after the boustrophedon path in each cell
 	std::vector<cv::Point2f> fov_middlepoint_path;	// this is the trajectory of centers of the robot footprint or the field of view
@@ -148,7 +148,7 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 	if (plan_for_footprint == true)
 		cv::waitKey();
 #endif
-	ROS_INFO("Found the cell paths.");
+	std::cout << "Found the cell paths." << std::endl;
 
 	// if the path should be planned for the robot footprint create the path and return here
 	if (plan_for_footprint == true)
@@ -166,7 +166,7 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 
 	// *********************** V. Get the robot path out of the fov path. ***********************
 	// go trough all computed fov poses and compute the corresponding robot pose
-	ROS_INFO("Starting to map from field of view pose to robot pose");
+	std::cout << "Starting to map from field of view pose to robot pose" << std::endl;
 	cv::Point robot_starting_position = (fov_poses.size()>0 ? cv::Point(cvRound(fov_poses[0].x), cvRound(fov_poses[0].y)) : starting_position);
 	cv::Mat inflated_room_map;
 	cv::erode(room_map, inflated_room_map, cv::Mat(), cv::Point(-1, -1), half_grid_spacing_as_int);

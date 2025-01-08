@@ -80,7 +80,7 @@ void convexSPPExplorator::solveOptimizationProblem(std::vector<T>& C, const cv::
 	// initialize the problem
 	CoinModel problem_builder;
 
-	ROS_INFO("Creating and solving linear program.");
+	std::cout << "Creating and solving linear program." << std::endl;
 
 	// add the optimization variables to the problem
 	int rval;
@@ -476,7 +476,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 
 
 	// get the distance matrix
-	ROS_INFO("Constructing distance matrix");
+	std::cout << "Constructing distance matrix" << std::endl;
 	cv::Mat distance_matrix;
 	DistanceMatrix distance_matrix_computation;
 	distance_matrix_computation.constructDistanceMatrix(distance_matrix, room_map, chosen_positions, 0.25, 0.0, map_resolution, path_planner_);
@@ -510,7 +510,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 	}
 
 	// do the repetitive nearest neighbor algorithm
-	ROS_INFO("Solving TSP with repetitive nearest neighbor");
+	std::cout << "Solving TSP with repetitive nearest neighbor" << std::endl;
 	std::vector<int> best_order;
 	double min_distance = 1e9;
 	if (chosen_positions.size()>100)
