@@ -58,8 +58,8 @@
  ****************************************************************/
 #pragma once
 
-#include <ros/ros.h>
-#include <ros/package.h>
+#include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <iostream>
 #include <iomanip>
@@ -73,14 +73,14 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/image_encodings.h>
-#include <visualization_msgs/MarkerArray.h>
+// #include <sensor_msgs/image_encodings.h>
+#include "visualization_msgs/msg/marker_array.hpp"
 
 #include <fstream>
 
 // Dynamic reconfigure
-#include <dynamic_reconfigure/server.h>
-#include <ipa_building_navigation/BuildingNavigationConfig.h>
+// #include <dynamic_reconfigure/server.h>
+// #include <ipa_building_navigation/BuildingNavigationConfig.h>
 
 //TSP solver
 #include <ipa_building_navigation/tsp_solver_defines.h>
@@ -98,13 +98,16 @@
 #include <ipa_building_navigation/A_star_pathplanner.h>
 
 // action
-#include <actionlib/server/simple_action_server.h>
-#include <ipa_building_msgs/FindRoomSequenceWithCheckpointsAction.h>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <ipa_building_msgs/action/find_room_sequence_with_checkpoints.hpp>
 
-class RoomSequencePlanningServer
+class RoomSequencePlanningServer : public rclcpp::Node
 {
 public:
-	RoomSequencePlanningServer(ros::NodeHandle nh, std::string name_of_the_action);
+	using FindRoomSequenceWithCheckpoints = ipa_building_msgs::action::FindRoomSequenceWithCheckpoints;
+	using GoalHandleFindRoomSequenceWithCheckpoints = rclcpp_action::ServerGoalHandle<FindRoomSequenceWithCheckpoints>;
+
+	explicit RoomSequencePlanningServer(const rclcpp::NodeOptions &options);
 
 	~RoomSequencePlanningServer()
 	{
@@ -113,14 +116,14 @@ public:
 protected:
 	//!!Important!!
 	// define the Nodehandle before the action server, or else the server won't start
-	ros::NodeHandle node_handle_;
+	// ros::NodeHandle node_handle_;
 
-	ros::Publisher room_sequence_visualization_pub_;	// visualization of the room sequence
-	visualization_msgs::MarkerArray room_sequence_visualization_msg_;
+	rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr room_sequence_visualization_pub_;	// visualization of the room sequence
+	visualization_msgs::msg::MarkerArray room_sequence_visualization_msg_;
 
-	actionlib::SimpleActionServer<ipa_building_msgs::FindRoomSequenceWithCheckpointsAction> room_sequence_with_checkpoints_server_;
+	rclcpp_action::Server<FindRoomSequenceWithCheckpoints>::SharedPtr action_server_;
 
-	std::string action_name_;
+	// std::string action_name_;
 
 	//converter-> Pixel to meter for X coordinate
 	double convert_pixel_to_meter_for_x_coordinate(const int pixel_valued_object_x, const float map_resolution, const cv::Point2d map_origin)
@@ -136,18 +139,28 @@ protected:
 	}
 
 	// this is the execution function used by action server
-	void findRoomSequenceWithCheckpointsServer(const ipa_building_msgs::FindRoomSequenceWithCheckpointsGoalConstPtr &goal);
+	rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &uuid, std::shared_ptr<const FindRoomSequenceWithCheckpoints::Goal> goal)
+	{
+		RCLCPP_INFO(this->get_logger(), "Goal is received..");
+		return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+	}
+	rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleFindRoomSequenceWithCheckpoints> goal_handle)
+	{
+		return rclcpp_action::CancelResponse::ACCEPT;
+	}
+	void handle_accepted(const std::shared_ptr<GoalHandleFindRoomSequenceWithCheckpoints> goal_handle);
+	void execute(const std::shared_ptr<GoalHandleFindRoomSequenceWithCheckpoints> goal_handle);
 
 	size_t getNearestLocation(const cv::Mat& floor_plan, const cv::Point start_coordinate, const std::vector<cv::Point>& positions,
 			const double map_downsampling_factor, const double robot_radius, const double map_resolution);
 
-	void publishSequenceVisualization(const std::vector<ipa_building_msgs::RoomSequence>& room_sequences, const std::vector<cv::Point>& room_centers,
+	void publishSequenceVisualization(const std::vector<ipa_building_msgs::msg::RoomSequence>& room_sequences, const std::vector<cv::Point>& room_centers,
 			std::vector< std::vector<int> >& cliques, const double map_resolution, const cv::Point2d& map_origin);
 
 	// callback function for dynamic reconfigure
-	void dynamic_reconfigure_callback(ipa_building_navigation::BuildingNavigationConfig &config, uint32_t level);
+	rcl_interfaces::msg::SetParametersResult dynamic_reconfigure_callback(std::vector<rclcpp::Parameter> parameters);
 
-	dynamic_reconfigure::Server<ipa_building_navigation::BuildingNavigationConfig> room_sequence_planning_dynamic_reconfigure_server_;
+	rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_handle_;
 
 	// params
 	int tsp_solver_;		// TSP solver: 1 = Nearest Neighbor,  2 = Genetic solver,  3 = Concorde solver

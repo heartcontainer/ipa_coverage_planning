@@ -1,5 +1,5 @@
 #include "rclcpp/rclcpp.hpp"
-#include <ros/package.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <iostream>
 #include <iomanip>
@@ -30,8 +30,8 @@
 int main(int argc, char **argv)
 {
 	srand(time(NULL));
-	ros::init(argc, argv, "TSPevaluation");
-	ros::NodeHandle nh;
+	rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("TSPevaluation"); 
 
 	//define parameters to describe the Graph
 	const int dimension = 600;
@@ -211,6 +211,6 @@ int main(int argc, char **argv)
 	genetic_file.close();
 	std::cout << "finished to save the times" << std::endl;
 
-
+	rclcpp::shutdown();
 	return 0;
 }

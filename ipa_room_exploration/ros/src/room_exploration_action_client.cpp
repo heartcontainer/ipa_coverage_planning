@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <ros/package.h>
+#include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <string>
 #include <vector>
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 	goal.planning_mode = planning_mode;
 	ac.sendGoal(goal);
 
-	ac.waitForResult(ros::Duration());
+	ac.waitForResult(rclcpp::Duration::from_seconds(0));
 	ipa_building_msgs::RoomExplorationResultConstPtr action_result = ac.getResult();
 
 	std::cout << "Got a path with " << action_result->coverage_path.size() << " nodes." << std::endl;

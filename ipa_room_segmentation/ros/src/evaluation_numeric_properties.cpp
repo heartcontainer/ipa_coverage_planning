@@ -522,7 +522,7 @@ int main(int argc, char **argv) {
 			action_client->sendGoal(goal);
 
 			//wait for the action to return
-			bool finished_before_timeout = action_client.waitForResult(ros::Duration());
+			bool finished_before_timeout = action_client.waitForResult(rclcpp::Duration::from_seconds(0));
 			if (!finished_before_timeout)
 				continue;
 

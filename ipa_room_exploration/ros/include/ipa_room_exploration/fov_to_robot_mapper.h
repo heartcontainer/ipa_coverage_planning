@@ -67,7 +67,7 @@
 #include <algorithm>
 #include <cmath>
 // Ros
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 // service
 #include <cob_map_accessibility_analysis/map_accessibility_analysis.h>
 // OpenCv

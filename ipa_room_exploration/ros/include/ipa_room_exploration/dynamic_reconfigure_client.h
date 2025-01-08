@@ -60,7 +60,7 @@
 #ifndef _DYNAMIC_RECONFIGURE_CLIENT_H_
 #define _DYNAMIC_RECONFIGURE_CLIENT_H_
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <ros/subscriber.h>
 
 #include <boost/thread/mutex.hpp>
