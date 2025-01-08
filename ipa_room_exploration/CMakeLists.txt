@@ -143,8 +143,16 @@ target_link_libraries(room_exploration_server
 # target_link_libraries(coverage_monitor_server libcoverage_check_server)
 
 # Room exploration client
-# add_executable(room_exploration_client ros/src/room_exploration_action_client.cpp)
-# ament_target_dependencies(room_exploration_client rclcpp rclcpp_action OpenCV Boost)
+add_executable(room_exploration_client ros/src/room_exploration_action_client.cpp)
+ament_target_dependencies(room_exploration_client
+  rclcpp
+  rclcpp_action
+  OpenCV
+  Boost
+  cv_bridge
+  nav_msgs
+  ipa_building_msgs
+)
 
 # Room exploration evaluation
 # add_executable(room_exploration_evaluation ros/src/room_exploration_evaluation.cpp ros/src/fov_to_robot_mapper.cpp)
