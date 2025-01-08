@@ -62,19 +62,19 @@
 
 // Ros specific
 #include <rclcpp/rclcpp.hpp>
-#include <actionlib/server/simple_action_server.h>
-#include <move_base_msgs/MoveBaseAction.h>
-#include <actionlib/client/simple_action_client.h>
+// #include <actionlib/server/simple_action_server.h>
+// #include <move_base_msgs/MoveBaseAction.h>
+// #include <actionlib/client/simple_action_client.h>
 #include <ros/time.h>
 #include <cv_bridge/cv_bridge.h>
-#include <tf/transform_listener.h>
-#include <dynamic_reconfigure/server.h>
+#include <tf2_ros/transform_listener.h>
+// #include <dynamic_reconfigure/server.h>
 // OpenCV specific
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 // Eigen library
 #include <Eigen/Dense>
-#include <eigen_conversions/eigen_msg.h>
+#include <tf2_eigen/tf2_eigen.hpp>
 // standard c++ libraries
 #include <iostream>
 #include <list>
@@ -83,21 +83,21 @@
 #include <algorithm>
 #include <cmath>
 // services and actions
-#include <ipa_building_msgs/RoomExplorationAction.h>
-#include <cob_map_accessibility_analysis/CheckPerimeterAccessibility.h>
-#include <ipa_building_msgs/CheckCoverage.h>
+#include <ipa_building_msgs/action/room_exploration.hpp>
+// #include <cob_map_accessibility_analysis/CheckPerimeterAccessibility.h>
+#include <ipa_building_msgs/srv/check_coverage.hpp>
 // messages
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Polygon.h>
 #include <geometry_msgs/Point32.h>
-#include <nav_msgs/Path.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
+#include <nav_msgs/msg/path.hpp>
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/image_encodings.hpp>
 // specific from this package
 #include <ipa_building_navigation/concorde_TSP.h>
-#include <ipa_room_exploration/RoomExplorationConfig.h>
+// #include <ipa_room_exploration/RoomExplorationConfig.h>
 #include <ipa_room_exploration/grid_point_explorator.h>
 #include <ipa_room_exploration/boustrophedon_explorator.h>
 #include <ipa_room_exploration/neural_network_explorator.h>
@@ -107,20 +107,21 @@
 #include <ipa_room_exploration/energy_functional_explorator.h>
 #include <ipa_room_exploration/voronoi.hpp>
 #include <ipa_room_exploration/room_rotator.h>
-#include <ipa_room_exploration/coverage_check_server.h>
-
+// #include <ipa_room_exploration/coverage_check_server.h>
+#include "rclcpp_action/rclcpp_action.hpp"
 
 #define PI 3.14159265359
 
-typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+using RoomExploration = ipa_building_msgs::action::RoomExploration;
+using GoalHandleRoomExploration = rclcpp_action::ServerGoalHandle<RoomExploration>;
 
-class RoomExplorationServer
+class RoomExplorationServer : public rclcpp::Node
 {
 protected:
 
 	int planning_mode_; // 1 = plans a path for coverage with the robot footprint, 2 = plans a path for coverage with the robot's field of view
 
-	ros::Publisher path_pub_; // a publisher sending the path as a nav_msgs::Path before executing
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_; // a publisher sending the path as a nav_msgs::Path before executing
 
 	GridPointExplorator grid_point_planner; // object that uses the grid point method to plan a path trough a room
 	BoustrophedonExplorer boustrophedon_explorer_; // object that uses the boustrophedon exploration method to plan a path trough the room
@@ -202,10 +203,21 @@ protected:
 
 
 	// callback function for dynamic reconfigure
-	void dynamic_reconfigure_callback(ipa_room_exploration::RoomExplorationConfig &config, uint32_t level);
+	rcl_interfaces::msg::SetParametersResult dynamic_reconfigure_callback(std::vector<rclcpp::Parameter> parameters);
 
 	// this is the execution function used by action server
-	void exploreRoom(const ipa_building_msgs::RoomExplorationGoalConstPtr &goal);
+	// void exploreRoom(const ipa_building_msgs::RoomExplorationGoalConstPtr &goal);
+	rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &uuid, std::shared_ptr<const RoomExploration::Goal> goal)
+	{
+		RCLCPP_INFO(this->get_logger(), "Goal is received..");
+		return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+	}
+	rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleRoomExploration> goal_handle)
+	{
+		return rclcpp_action::CancelResponse::ACCEPT;
+	}
+	void handle_accepted(const std::shared_ptr<GoalHandleRoomExploration> goal_handle);
+	void execute(const std::shared_ptr<GoalHandleRoomExploration> goal_handle);
 
 	// remove unconnected, i.e. inaccessible, parts of the room (i.e. obstructed by furniture), only keep the room with the largest area
 	bool removeUnconnectedRoomParts(cv::Mat& room_map);
@@ -254,7 +266,7 @@ protected:
 	}
 
 	// function to create an occupancyGrid map out of a given cv::Mat
-	void matToMap(nav_msgs::OccupancyGrid &map, const cv::Mat &mat)
+	void matToMap(nav_msgs::msg::OccupancyGrid &map, const cv::Mat &mat)
 	{
 		map.info.width  = mat.cols;
 		map.info.height = mat.rows;
@@ -266,7 +278,7 @@ protected:
 	}
 
 	// function to create a cv::Mat out of a given occupancyGrid map
-	void mapToMat(const nav_msgs::OccupancyGrid &map, cv::Mat &mat)
+	void mapToMat(const nav_msgs::msg::OccupancyGrid &map, cv::Mat &mat)
 	{
 		mat = cv::Mat(map.info.height, map.info.width, CV_8U);
 
@@ -278,15 +290,17 @@ protected:
 	// !!Important!!
 	//  define the Nodehandle before the action server, or else the server won't start
 	//
-	ros::NodeHandle node_handle_;
-	actionlib::SimpleActionServer<ipa_building_msgs::RoomExplorationAction> room_exploration_server_;
-	dynamic_reconfigure::Server<ipa_room_exploration::RoomExplorationConfig> room_exploration_dynamic_reconfigure_server_;
+	// ros::NodeHandle node_handle_;
+	// actionlib::SimpleActionServer<ipa_building_msgs::RoomExplorationAction> room_exploration_server_;
+	// dynamic_reconfigure::Server<ipa_room_exploration::RoomExplorationConfig> room_exploration_dynamic_reconfigure_server_;
+	rclcpp_action::Server<RoomExploration>::SharedPtr action_server_;
+	rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_handle_;
 
 public:
 	enum PlanningMode {PLAN_FOR_FOOTPRINT=1, PLAN_FOR_FOV=2};
 
 	// initialize the action-server
-	RoomExplorationServer(ros::NodeHandle nh, std::string name_of_the_action);
+	explicit RoomExplorationServer(const rclcpp::NodeOptions &options);
 
 	// default destructor for the class
 	~RoomExplorationServer(void)

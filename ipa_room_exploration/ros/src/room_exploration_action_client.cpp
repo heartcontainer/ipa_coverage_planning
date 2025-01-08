@@ -100,8 +100,8 @@ int main(int argc, char **argv)
 	std::cout << "map-size: " << map.rows << "x" << map.cols << std::endl;
 
 //	const std::string topic = "/move_base/global_costmap/costmap";
-//	nav_msgs::OccupancyGrid grid;
-//	grid = *(ros::topic::waitForMessage<nav_msgs::OccupancyGrid>(topic, nh));
+//	nav_msgs::msg::OccupancyGrid grid;
+//	grid = *(ros::topic::waitForMessage<nav_msgs::msg::OccupancyGrid>(topic, nh));
 //	ROS_INFO("got grid");
 //	std::vector<signed char>& dats = grid.data;
 //	std::cout << dats.size() << std::endl;

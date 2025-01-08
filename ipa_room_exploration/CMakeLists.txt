@@ -24,6 +24,7 @@ find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system chrono thread)
 find_package(ipa_building_msgs REQUIRED)
 find_package(ipa_building_navigation REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 # Optional dependencies (example: GUROBI)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake/")
@@ -35,6 +36,22 @@ if(GUROBI_FOUND)
   message(STATUS "Gurobi lib dirs: ${GUROBI_LIBRARIES}")
 endif()
 
+# Coin-Or and Cbc, included as ubuntu system package, without Cmake-module so include pkg-config file
+# 	!!! Important note: the order of the libraries when linking your executable is important, if it is wrong you get undefined references !!!
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(CoinUtils REQUIRED coinutils)# coinutils osi-clp clp osi cbc cgl
+pkg_check_modules(OsiClp REQUIRED osi-clp)
+pkg_check_modules(Clp REQUIRED clp)
+pkg_check_modules(Osi REQUIRED osi)
+pkg_check_modules(Cbc-lib REQUIRED cbc)
+pkg_check_modules(Cgl REQUIRED cgl)
+Message(STATUS "coinutils include dirs: " ${CoinUtils_INCLUDE_DIRS})
+Message(STATUS "osi-clp include dirs: " ${OsiClp_INCLUDE_DIRS})
+Message(STATUS "clp include dirs: " ${Clp_INCLUDE_DIRS})
+Message(STATUS "osi include dirs: " ${Osi_INCLUDE_DIRS})
+Message(STATUS "cbc include dirs: " ${Cbc-lib_INCLUDE_DIRS})
+Message(STATUS "cgl include dirs: " ${Cgl_INCLUDE_DIRS})
+
 # Include directories
 include_directories(
   common/include
@@ -43,6 +60,12 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${GUROBI_INCLUDE_DIRS}
+  ${CoinUtils_INCLUDE_DIRS}
+	${OsiClp_INCLUDE_DIRS}
+	${Clp_INCLUDE_DIRS}
+	${Osi_INCLUDE_DIRS}
+	${Cgl_INCLUDE_DIRS}
+	${Cbc-lib_INCLUDE_DIRS}
 )
 
 ### package library
@@ -72,20 +95,38 @@ ament_target_dependencies(${PROJECT_NAME}
   # cob_map_accessibility_analysis
   ipa_building_msgs
   ipa_building_navigation
+  cv_bridge
+  tf2_eigen
 )
 if(GUROBI_FOUND)
   target_link_libraries(${PROJECT_NAME} ${GUROBI_LIBRARIES})
 endif()
 
 # Room exploration action server
-# add_executable(room_exploration_server ros/src/room_exploration_action_server.cpp ros/src/fov_to_robot_mapper.cpp)
-# ament_target_dependencies(room_exploration_server
-#   rclcpp
-#   rclcpp_action
-#   OpenCV
-#   Boost
-# )
-# target_link_libraries(room_exploration_server ${PROJECT_NAME})
+add_executable(room_exploration_server ros/src/room_exploration_action_server.cpp ros/src/fov_to_robot_mapper.cpp)
+ament_target_dependencies(room_exploration_server
+  rclcpp
+  rclcpp_action
+  OpenCV
+  Boost
+  CoinUtils
+	OsiClp
+	Clp
+	Osi
+	Cgl
+	Cbc-lib
+  ipa_building_navigation
+)
+target_link_libraries(room_exploration_server
+  ${PROJECT_NAME}
+  ${CoinUtils_LIBRARIES}
+  ${OsiClp_LIBRARIES}
+  ${Clp_LIBRARIES}
+  ${Osi_LIBRARIES}
+  ${Cgl_LIBRARIES}
+  ${Cbc-lib_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
 
 # Coverage check library
 # add_library(libcoverage_check_server ros/src/coverage_check_server.cpp)

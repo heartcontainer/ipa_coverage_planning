@@ -26,7 +26,7 @@ include_directories(
 )
 
 # TSP library
-add_library(tsp_solvers
+add_library(tsp_solvers SHARED
   common/src/A_star_pathplanner.cpp
   common/src/node.cpp
   common/src/nearest_neighbor_TSP.cpp
@@ -119,4 +119,6 @@ install(DIRECTORY ros/include/${PROJECT_NAME}/ DESTINATION include/${PROJECT_NAM
 install(DIRECTORY ros/launch DESTINATION share/${PROJECT_NAME}/launch)
 
 ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME} tsp_solvers)
+# ament_export_dependencies(${dependencies})
 ament_package()

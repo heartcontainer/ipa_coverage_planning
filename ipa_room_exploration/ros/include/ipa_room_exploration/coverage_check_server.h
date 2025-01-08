@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <cmath>
 // services
-#include <ipa_building_msgs/CheckCoverage.h>
+#include <ipa_building_msgs/srv/check_coverage.hpp>
 
 // Class that provides a service server to check which areas have been covered, when going along the given poses. It returns an image that
 // has all covered areas drawn in as 127.
@@ -25,7 +25,7 @@ class CoverageCheckServer
 {
 protected:
 	// node handle
-	ros::NodeHandle node_handle_;
+	// ros::NodeHandle node_handle_;
 
 	// Function to draw the covered areas into the given map. This is done by going through all given robot-poses and calculating
 	// the field of view. The field of view is given in robot base coordinates (x-axis shows to the front and y-axis to left side).
