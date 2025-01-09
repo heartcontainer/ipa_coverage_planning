@@ -7,9 +7,7 @@ add_compile_options(-std=c++17)
 # Dependencies
 find_package(ament_cmake REQUIRED)
 find_package(angles REQUIRED)
-# find_package(cob_map_accessibility_analysis REQUIRED)
 find_package(cv_bridge REQUIRED)
-# find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -78,6 +76,7 @@ add_library(${PROJECT_NAME} STATIC
   common/src/flow_network_explorator.cpp
   common/src/room_rotator.cpp
   common/src/meanshift2d.cpp
+  common/src/map_accessibility_analysis.cpp
 )
 ament_target_dependencies(${PROJECT_NAME}
   rclcpp
@@ -92,7 +91,6 @@ ament_target_dependencies(${PROJECT_NAME}
   tf2
   tf2_ros
   visualization_msgs
-  # cob_map_accessibility_analysis
   ipa_building_msgs
   ipa_building_navigation
   cv_bridge

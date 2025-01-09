@@ -69,7 +69,7 @@
 // Ros
 #include <rclcpp/rclcpp.hpp>
 // service
-// #include <cob_map_accessibility_analysis/map_accessibility_analysis.h>
+#include <cob_map_accessibility_analysis/map_accessibility_analysis.h>
 // OpenCv
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
