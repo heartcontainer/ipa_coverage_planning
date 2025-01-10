@@ -17,7 +17,6 @@
 	<depend>rclcpp</depend>
 	<depend>rclcpp_action</depend>
 	<depend>cv_bridge</depend>
-	<depend>dynamic_reconfigure</depend>
 	<depend>geometry_msgs</depend>
 	<depend>ipa_building_msgs</depend>
 	<depend>libopencv-dev</depend>

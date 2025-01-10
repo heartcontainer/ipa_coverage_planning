@@ -8,6 +8,7 @@ add_compile_options(-std=c++17)
 set(RUN_PACKAGES
   cv_bridge
   ipa_building_msgs
+  ipa_building_common
   nav_msgs
   rosidl_default_runtime
   rclcpp
@@ -18,6 +19,7 @@ set(RUN_PACKAGES
 
 find_package(cv_bridge REQUIRED)
 find_package(ipa_building_msgs REQUIRED)
+find_package(ipa_building_common REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(OpenCV REQUIRED)

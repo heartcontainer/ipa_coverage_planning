@@ -58,6 +58,7 @@
  ****************************************************************/
 
 #include <ipa_room_exploration/room_exploration_action_server.h>
+#include "dynamic_reconfigure.h"
 
 // constructor
 RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options) : rclcpp::Node("room_exploration_server", options)
@@ -73,7 +74,7 @@ RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options)
 		std::bind(&RoomExplorationServer::handle_accepted, this, std::placeholders::_1));
 
 	// Declare the parameter with a default value
-	this->declare_parameter<int>("room_exploration_algorithm", 1);
+	this->declare_parameter<int>("room_exploration_algorithm", 8);
 	this->declare_parameter<bool>("display_trajectory", false);
 
 	this->declare_parameter<int>("map_correction_closing_neighborhood_size", 2);
@@ -83,7 +84,7 @@ RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options)
 	this->declare_parameter<double>("goal_eps", 0.35);
 	this->declare_parameter<bool>("use_dyn_goal_eps", false);
 	this->declare_parameter<bool>("interrupt_navigation_publishing", false);
-	this->declare_parameter<bool>("revisit_areas", false);
+	this->declare_parameter<bool>("revisit_areas", true);
 	this->declare_parameter<double>("left_sections_min_area", 0.01);
 	this->declare_parameter<std::string>("global_costmap_topic", "/move_base/global_costmap/costmap");
 	this->declare_parameter<std::string>("coverage_check_service_name", "/room_exploration/coverage_check_server/coverage_check");
@@ -110,8 +111,6 @@ RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options)
 	this->declare_parameter<double>("delta_theta", 1.570796);
 	this->declare_parameter<double>("curvature_factor", 1.1);
 	this->declare_parameter<double>("max_distance_factor", 1.0);
-	this->declare_parameter<int>("cell_size", 0);
-	this->declare_parameter<double>("path_eps", 3.0);
 
 	// Parameters
 	std::cout << "\n--------------------------\nRoom Exploration Parameters:\n--------------------------\n";
@@ -244,7 +243,8 @@ RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options)
 
 	map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
 		global_costmap_topic_, rclcpp::QoS(1),
-		[this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+		[this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+		{
 			this->global_costmap_ = *msg;
 		});
 
@@ -259,109 +259,51 @@ rcl_interfaces::msg::SetParametersResult RoomExplorationServer::dynamic_reconfig
 {
 	RCLCPP_INFO(this->get_logger(), "Dynamic reconfigure request.");
 	rcl_interfaces::msg::SetParametersResult result;
-
-	// set segmentation algorithm
-	// std::cout << "######################################################################################" << std::endl;
-	// std::cout << "Dynamic reconfigure request:" << std::endl;
-
-	// room_exploration_algorithm_ = config.room_exploration_algorithm;
-	// std::cout << "room_exploration/path_planning_algorithm_ = " << room_exploration_algorithm_ << std::endl;
-
-	// map_correction_closing_neighborhood_size_ = config.map_correction_closing_neighborhood_size;
-	// std::cout << "room_exploration/map_correction_closing_neighborhood_size_ = " << map_correction_closing_neighborhood_size_ << std::endl;
-
-	// return_path_ = config.return_path;
-	// std::cout << "room_exploration/return_path_ = " << return_path_ << std::endl;
-	// execute_path_ = config.execute_path;
-	// std::cout << "room_exploration/execute_path_ = " << execute_path_ << std::endl;
-	// goal_eps_ = config.goal_eps;
-	// std::cout << "room_exploration/goal_eps_ = " << goal_eps_ << std::endl;
-	// use_dyn_goal_eps_  = config.use_dyn_goal_eps;
-	// std::cout << "room_exploration/use_dyn_goal_eps_ = " << use_dyn_goal_eps_ << std::endl;
-	// interrupt_navigation_publishing_ = config.interrupt_navigation_publishing;
-	// std::cout << "room_exploration/interrupt_navigation_publishing_ = " << interrupt_navigation_publishing_ << std::endl;
-	// revisit_areas_ = config.revisit_areas;
-	// std::cout << "room_exploration/revisit_areas_ = " << revisit_areas_ << std::endl;
-	// left_sections_min_area_ = config.left_sections_min_area;
-	// std::cout << "room_exploration/left_sections_min_area = " << left_sections_min_area_ << std::endl;
-	// global_costmap_topic_ = config.global_costmap_topic;
-	// std::cout << "room_exploration/global_costmap_topic_ = " << global_costmap_topic_ << std::endl;
-	// coverage_check_service_name_ = config.coverage_check_service_name;
-	// std::cout << "room_exploration/coverage_check_service_name_ = " << coverage_check_service_name_ << std::endl;
-	// map_frame_ = config.map_frame;
-	// std::cout << "room_exploration/map_frame_ = " << map_frame_ << std::endl;
-	// camera_frame_ = config.camera_frame;
-	// std::cout << "room_exploration/camera_frame_ = " << camera_frame_ << std::endl;
-
-	// // set parameters regarding the chosen algorithm
-	// if (room_exploration_algorithm_ == 1) // set grid point exploration parameters
-	// {
-	// 	tsp_solver_ = config.tsp_solver;
-	// 	std::cout << "room_exploration/tsp_solver_ = " << tsp_solver_ << std::endl;
-	// 	tsp_solver_timeout_ = config.tsp_solver_timeout;
-	// 	std::cout << "room_exploration/tsp_solver_timeout_ = " << tsp_solver_timeout_ << std::endl;
-	// }
-	// else if ((room_exploration_algorithm_ == 2) || (room_exploration_algorithm_ == 8)) // set boustrophedon (variant) exploration parameters
-	// {
-	// 	min_cell_area_ = config.min_cell_area;
-	// 	std::cout << "room_exploration/min_cell_area_ = " << min_cell_area_ << std::endl;
-	// 	path_eps_ = config.path_eps;
-	// 	std::cout << "room_exploration/path_eps_ = " << path_eps_ << std::endl;
-	// 	grid_obstacle_offset_ = config.grid_obstacle_offset;
-	// 	std::cout << "room_exploration/grid_obstacle_offset_ = " << grid_obstacle_offset_ << std::endl;
-	// 	max_deviation_from_track_ = config.max_deviation_from_track;
-	// 	std::cout << "room_exploration/max_deviation_from_track_ = " << max_deviation_from_track_ << std::endl;
-	// 	cell_visiting_order_ = config.cell_visiting_order;
-	// 	std::cout << "room_exploration/cell_visiting_order = " << cell_visiting_order_ << std::endl;
-	// }
-	// else if (room_exploration_algorithm_ == 3) // set neural network explorator parameters
-	// {
-	// 	step_size_ = config.step_size;
-	// 	std::cout << "room_exploration/step_size_ = " << step_size_ << std::endl;
-	// 	A_ = config.A;
-	// 	std::cout << "room_exploration/A_ = " << A_ << std::endl;
-	// 	B_ = config.B;
-	// 	std::cout << "room_exploration/B_ = " << B_ << std::endl;
-	// 	D_ = config.D;
-	// 	std::cout << "room_exploration/D_ = " << D_ << std::endl;
-	// 	E_ = config.E;
-	// 	std::cout << "room_exploration/E_ = " << E_ << std::endl;
-	// 	mu_ = config.mu;
-	// 	std::cout << "room_exploration/mu_ = " << mu_ << std::endl;
-	// 	delta_theta_weight_ = config.delta_theta_weight;
-	// 	std::cout << "room_exploration/delta_theta_weight_ = " << delta_theta_weight_ << std::endl;
-	// }
-	// else if (room_exploration_algorithm_ == 4) // set convexSPP explorator parameters
-	// {
-	// 	cell_size_ = config.cell_size;
-	// 	std::cout << "room_exploration/cell_size_ = " << cell_size_ << std::endl;
-	// 	delta_theta_ = config.delta_theta;
-	// 	std::cout << "room_exploration/delta_theta_ = " << delta_theta_ << std::endl;
-	// }
-	// else if (room_exploration_algorithm_ == 5) // set flowNetwork explorator parameters
-	// {
-	// 	curvature_factor_ = config.curvature_factor;
-	// 	std::cout << "room_exploration/delta_theta_ = " << delta_theta_ << std::endl;
-	// 	max_distance_factor_ = config.max_distance_factor;
-	// 	std::cout << "room_exploration/max_distance_factor_ = " << max_distance_factor_ << std::endl;
-	// 	cell_size_ = config.cell_size;
-	// 	std::cout << "room_exploration/cell_size_ = " << cell_size_ << std::endl;
-	// 	path_eps_ = config.path_eps;
-	// 	std::cout << "room_exploration/path_eps_ = " << path_eps_ << std::endl;
-	// }
-	// else if (room_exploration_algorithm_ == 6) // set energyFunctional explorator parameters
-	// {
-	// }
-	// else if (room_exploration_algorithm_ == 7) // set voronoi explorator parameters
-	// {
-	// }
-
-	// if (revisit_areas_ == true)
-	// 	std::cout << "Areas not seen after the initial execution of the path will be revisited." << std::endl;
-	// else
-	// 	std::cout << "Areas not seen after the initial execution of the path will NOT be revisited." << std::endl;
-
-	// std::cout << "######################################################################################" << std::endl;
+	using dynamic_reconfigure::reset_value_if_name_equals;
+	for (const auto &param : parameters)
+	{
+		if (reset_value_if_name_equals("room_exploration_algorithm", &room_exploration_algorithm_, &param) ||
+			reset_value_if_name_equals("map_correction_closing_neighborhood_size", &map_correction_closing_neighborhood_size_, &param) ||
+			reset_value_if_name_equals("return_path", &return_path_, &param) ||
+			reset_value_if_name_equals("execute_path", &execute_path_, &param) ||
+			reset_value_if_name_equals("goal_eps", &goal_eps_, &param) ||
+			reset_value_if_name_equals("use_dyn_goal_eps", &use_dyn_goal_eps_, &param) ||
+			reset_value_if_name_equals("interrupt_navigation_publishing", &interrupt_navigation_publishing_, &param) ||
+			reset_value_if_name_equals("revisit_areas", &revisit_areas_, &param) ||
+			reset_value_if_name_equals("left_sections_min_area", &left_sections_min_area_, &param) ||
+			reset_value_if_name_equals("global_costmap_topic", &global_costmap_topic_, &param) ||
+			reset_value_if_name_equals("coverage_check_service_name", &coverage_check_service_name_, &param) ||
+			reset_value_if_name_equals("map_frame", &map_frame_, &param) ||
+			reset_value_if_name_equals("camera_frame", &camera_frame_, &param) ||
+			reset_value_if_name_equals("tsp_solver", &tsp_solver_, &param) ||
+			reset_value_if_name_equals("tsp_solver_timeout", &tsp_solver_timeout_, &param) ||
+			reset_value_if_name_equals("min_cell_area", &min_cell_area_, &param) ||
+			reset_value_if_name_equals("path_eps", &path_eps_, &param) ||
+			reset_value_if_name_equals("grid_obstacle_offset", &grid_obstacle_offset_, &param) ||
+			reset_value_if_name_equals("max_deviation_from_track", &max_deviation_from_track_, &param) ||
+			reset_value_if_name_equals("cell_visiting_order", &cell_visiting_order_, &param) ||
+			reset_value_if_name_equals("step_size", &step_size_, &param) ||
+			reset_value_if_name_equals("A", &A_, &param) ||
+			reset_value_if_name_equals("B", &B_, &param) ||
+			reset_value_if_name_equals("D", &D_, &param) ||
+			reset_value_if_name_equals("E", &E_, &param) ||
+			reset_value_if_name_equals("mu", &mu_, &param) ||
+			reset_value_if_name_equals("delta_theta_weight", &delta_theta_weight_, &param) ||
+			reset_value_if_name_equals("cell_size", &cell_size_, &param) ||
+			reset_value_if_name_equals("delta_theta", &delta_theta_, &param) ||
+			reset_value_if_name_equals("curvature_factor", &curvature_factor_, &param) ||
+			reset_value_if_name_equals("max_distance_factor", &max_distance_factor_, &param))
+		{
+			continue;
+		}
+		else
+		{
+			RCLCPP_ERROR(this->get_logger(), "Unknown parameter: %s", param.get_name().c_str());
+			result.successful = false;
+			result.reason = "Unknown parameter '" + param.get_name() + "'";
+			return result;
+		}
+	}
 	result.successful = true;
 	return result;
 }
@@ -1258,7 +1200,6 @@ int main(int argc, char **argv)
 	rclcpp::init(argc, argv);
 
 	auto node = std::make_shared<RoomExplorationServer>(rclcpp::NodeOptions());
-	RCLCPP_INFO(node->get_logger(), "Action Server for room exploration has been initialized......");
 	rclcpp::spin(node);
 
 	rclcpp::shutdown();

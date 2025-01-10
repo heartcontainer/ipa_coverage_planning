@@ -11,6 +11,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <ipa_building_msgs/action/room_exploration.hpp>
+#include "dynamic_reconfigure.h"
 
 // Overload of << operator for geometry_msgs::msg::Pose2D to wanted format
 std::ostream &operator<<(std::ostream &os, const geometry_msgs::msg::Pose2D &obj)
@@ -71,7 +72,11 @@ public:
         }
         RCLCPP_INFO(this->get_logger(), "Map size: %dx%d", map_.rows, map_.cols);
 
-        // TODO: DynamicReconfigureClient
+        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server", {rclcpp::Parameter("room_exploration_algorithm", 8), rclcpp::Parameter("execute_path", false)}))
+        {
+            rclcpp::shutdown();
+            return;
+        }
 
         // Convert map to sensor_msgs/Image
         sensor_msgs::msg::Image labeling;

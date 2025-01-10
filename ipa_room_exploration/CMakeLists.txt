@@ -23,6 +23,7 @@ find_package(Boost REQUIRED COMPONENTS system chrono thread)
 find_package(ipa_building_msgs REQUIRED)
 find_package(ipa_building_navigation REQUIRED)
 find_package(tf2_eigen REQUIRED)
+find_package(ipa_building_common REQUIRED)
 
 # Optional dependencies (example: GUROBI)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${PROJECT_SOURCE_DIR}/cmake/")
@@ -126,6 +127,7 @@ ament_target_dependencies(room_exploration_server
   ipa_building_navigation
   nav_msgs
   nav2_msgs
+  ipa_building_common
 )
 target_link_libraries(room_exploration_server
   ${PROJECT_NAME}
@@ -147,6 +149,7 @@ ament_target_dependencies(coverage_check_server
   Boost 
   cv_bridge
   ipa_building_msgs
+  ipa_building_common
 )
 target_link_libraries(coverage_check_server libcoverage_check_server)
 
@@ -165,6 +168,7 @@ ament_target_dependencies(room_exploration_client
   cv_bridge
   nav_msgs
   ipa_building_msgs
+  ipa_building_common
 )
 
 # Room exploration evaluation
@@ -175,15 +179,13 @@ ament_target_dependencies(room_exploration_client
 # Install targets
 install(TARGETS
   ${PROJECT_NAME}
-  # room_exploration_server
-  # room_exploration_client
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  room_exploration_server
+  room_exploration_client
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(DIRECTORY common/include/${PROJECT_NAME}/ DESTINATION include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ros/include/${PROJECT_NAME}/ DESTINATION include/${PROJECT_NAME} FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY ros/launch DESTINATION share/${PROJECT_NAME}/ros PATTERN "*.launch" EXCLUDE)
+install(DIRECTORY ros/launch DESTINATION share/${PROJECT_NAME})
 
 ament_package()
