@@ -25,7 +25,7 @@ void MorphologicalSegmentation::segmentMap(const cv::Mat& map_to_be_labeled, cv:
 	//**************erode temporary_map until last possible room found****************
 	//erode map a specified amount of times
 	std::vector < std::vector<cv::Point> > saved_contours; //saving variable for every contour that is between the upper and the lower limit
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.morphological_segmentation"), "starting eroding");
+	std::cout << "starting eroding" << std::endl;
 	for (int counter = 0; counter < 73; counter++)
 	{
 		//erode the map one time
@@ -111,7 +111,7 @@ void MorphologicalSegmentation::segmentMap(const cv::Mat& map_to_be_labeled, cv:
 	}
 	//*************************obstacles***********************
 	//get obstacle informations and draw them into the new map
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.morphological_segmentation"), "starting getting obstacle information");
+	std::cout << "starting getting obstacle information" << std::endl;
 	for (int row = 0; row < map_to_be_labeled.rows; ++row)
 	{
 		for (int col = 0; col < map_to_be_labeled.cols; ++col)
@@ -123,10 +123,10 @@ void MorphologicalSegmentation::segmentMap(const cv::Mat& map_to_be_labeled, cv:
 			}
 		}
 	}
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.morphological_segmentation"), "drawn obstacles in map");
+	std::cout << "drawn obstacles in map" << std::endl;
 	//**************spread the colored region by making white pixel around a contour their color****************
 	//spread the coloured regions to the white Pixels
 	wavefrontRegionGrowing(segmented_map);
-	RCLCPP_INFO(rclcpp::get_logger("room_segmentation.morphological_segmentation"), "filled white pixels in new map");
+	std::cout << "filled white pixels in new map" << std::endl;
 
 }
