@@ -44,7 +44,7 @@ BoustrophedonExplorer::BoustrophedonExplorer()
 //		middlepoint s.t. the distance to the last robot position is minimized. If this is not wanted one has to set the
 //		corresponding Boolean to false (shows that the path planning should be done for the robot footprint).
 // room_map = expects to receive the original, not inflated room map
-void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path,
+void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path,
 		const float map_resolution, const cv::Point starting_position, const cv::Point2d map_origin,
 		const double grid_spacing_in_pixel, const double grid_obstacle_offset, const double path_eps, const int cell_visiting_order,
 		const bool plan_for_footprint, const Eigen::Matrix<float, 2, 1> robot_to_fov_vector, const double min_cell_area, const int max_deviation_from_track)
@@ -130,7 +130,7 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 
 	// transform the calculated path back to the originally rotated map and create poses with an angle
 	RoomRotator room_rotation;
-	std::vector<geometry_msgs::Pose2D> fov_poses;	// this is the trajectory of poses of the robot footprint or the field of view, in [pixels]
+	std::vector<geometry_msgs::msg::Pose2D> fov_poses;	// this is the trajectory of poses of the robot footprint or the field of view, in [pixels]
 	room_rotation.transformPathBackToOriginalRotation(fov_middlepoint_path, fov_poses, R);
 #ifdef DEBUG_VISUALIZATION
 	std::cout << "printing path" << std::endl;
@@ -153,9 +153,9 @@ void BoustrophedonExplorer::getExplorationPath(const cv::Mat& room_map, std::vec
 	// if the path should be planned for the robot footprint create the path and return here
 	if (plan_for_footprint == true)
 	{
-		for(std::vector<geometry_msgs::Pose2D>::iterator pose=fov_poses.begin(); pose != fov_poses.end(); ++pose)
+		for(std::vector<geometry_msgs::msg::Pose2D>::iterator pose=fov_poses.begin(); pose != fov_poses.end(); ++pose)
 		{
-			geometry_msgs::Pose2D current_pose;
+			geometry_msgs::msg::Pose2D current_pose;
 			current_pose.x = (pose->x * map_resolution) + map_origin.x;
 			current_pose.y = (pose->y * map_resolution) + map_origin.y;
 			current_pose.theta = pose->theta;

@@ -1,13 +1,9 @@
 #include <ipa_room_exploration/coverage_check_server.h>
 
-
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "coverage_check_server");
-	ros::NodeHandle nh("~");
-
-	CoverageCheckServer coverage_checker(nh);
-
-	ros::spin();
-	return 0;
+	rclcpp::init(argc, argv);
+	auto node = std::make_shared<CoverageCheckServer>(true);
+	rclcpp::spin(node);
+	rclcpp::shutdown();
 }

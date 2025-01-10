@@ -130,8 +130,8 @@ struct EvaluationData
 	cv::Mat floor_plan_;
 	double map_downsampling_factor_;
 	float map_resolution_;
-	geometry_msgs::Pose map_origin_;
-	geometry_msgs::Pose robot_start_position_;
+	geometry_msgs::msg::Pose map_origin_;
+	geometry_msgs::msg::Pose robot_start_position_;
 	double robot_radius_;
 	std::vector< cv::Point > trash_bin_locations_;
 	cv::Point central_trolley_park_;

@@ -74,7 +74,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 // msgs
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 #include <geometry_msgs/Polygon.h>
 // Eigen library
 #include <Eigen/Dense>
@@ -91,8 +91,8 @@
 // Important: the room map needs to be an unsigned char single channel image, if inaccessible areas should be excluded, provide the inflated map
 // robot_to_fov_vector in [m]
 // returns robot_path in [m,m,rad]
-void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& robot_path,
-		const std::vector<geometry_msgs::Pose2D>& fov_path, const Eigen::Matrix<float, 2, 1>& robot_to_fov_vector,
+void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& robot_path,
+		const std::vector<geometry_msgs::msg::Pose2D>& fov_path, const Eigen::Matrix<float, 2, 1>& robot_to_fov_vector,
 		const double map_resolution, const cv::Point2d map_origin, const cv::Point& starting_point);
 
 // computes the field of view center and the radius of the maximum incircle of a given field of view quadrilateral

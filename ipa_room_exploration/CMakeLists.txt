@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(ipa_room_exploration)
 
-# Enable C++17 standard
 add_compile_options(-std=c++17)
 
 # Dependencies
@@ -11,6 +10,7 @@ find_package(cv_bridge REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -100,6 +100,16 @@ if(GUROBI_FOUND)
   target_link_libraries(${PROJECT_NAME} ${GUROBI_LIBRARIES})
 endif()
 
+# Coverage check library
+add_library(libcoverage_check_server ros/src/coverage_check_server.cpp)
+ament_target_dependencies(libcoverage_check_server 
+  rclcpp 
+  OpenCV 
+  Boost 
+  cv_bridge 
+  ipa_building_msgs
+)
+
 # Room exploration action server
 add_executable(room_exploration_server ros/src/room_exploration_action_server.cpp ros/src/fov_to_robot_mapper.cpp)
 ament_target_dependencies(room_exploration_server
@@ -114,6 +124,8 @@ ament_target_dependencies(room_exploration_server
 	Cgl
 	Cbc-lib
   ipa_building_navigation
+  nav_msgs
+  nav2_msgs
 )
 target_link_libraries(room_exploration_server
   ${PROJECT_NAME}
@@ -124,16 +136,19 @@ target_link_libraries(room_exploration_server
   ${Cgl_LIBRARIES}
   ${Cbc-lib_LIBRARIES}
   ${Boost_LIBRARIES}
+  libcoverage_check_server
 )
 
-# Coverage check library
-# add_library(libcoverage_check_server ros/src/coverage_check_server.cpp)
-# ament_target_dependencies(libcoverage_check_server rclcpp OpenCV Boost)
-
 # Coverage check server
-# add_executable(coverage_check_server ros/src/coverage_check_server_main.cpp)
-# ament_target_dependencies(coverage_check_server rclcpp OpenCV Boost)
-# target_link_libraries(coverage_check_server libcoverage_check_server)
+add_executable(coverage_check_server ros/src/coverage_check_server_main.cpp)
+ament_target_dependencies(coverage_check_server 
+  rclcpp 
+  OpenCV 
+  Boost 
+  cv_bridge
+  ipa_building_msgs
+)
+target_link_libraries(coverage_check_server libcoverage_check_server)
 
 # Coverage monitor server
 # add_executable(coverage_monitor_server ros/src/coverage_monitor_server.cpp)

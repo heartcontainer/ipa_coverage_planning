@@ -84,13 +84,13 @@
 #include <cmath>
 // services and actions
 #include <ipa_building_msgs/action/room_exploration.hpp>
-// #include <cob_map_accessibility_analysis/CheckPerimeterAccessibility.h>
+#include <ipa_building_msgs/srv/check_perimeter_accessibility.hpp>
 #include <ipa_building_msgs/srv/check_coverage.hpp>
 // messages
-#include <geometry_msgs/Pose2D.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Polygon.h>
-#include <geometry_msgs/Point32.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/polygon.hpp>
+#include <geometry_msgs/msg/point32.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -107,13 +107,16 @@
 #include <ipa_room_exploration/energy_functional_explorator.h>
 #include <ipa_room_exploration/voronoi.hpp>
 #include <ipa_room_exploration/room_rotator.h>
-// #include <ipa_room_exploration/coverage_check_server.h>
+#include <ipa_room_exploration/coverage_check_server.h>
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "nav2_msgs/action/navigate_to_pose.hpp"
 
 #define PI 3.14159265359
 
 using RoomExploration = ipa_building_msgs::action::RoomExploration;
 using GoalHandleRoomExploration = rclcpp_action::ServerGoalHandle<RoomExploration>;
+using NavigateToPose = nav2_msgs::action::NavigateToPose;
+using GoalHandleNavigateToPose = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
 class RoomExplorationServer : public rclcpp::Node
 {
@@ -224,19 +227,19 @@ protected:
 
 	// clean path from subsequent double occurrences of the same pose
 	// min_dist_squared is the squared minimum distance between two points on the trajectory, in [pixel] (i.e. grid cells)
-	void downsampleTrajectory(const std::vector<geometry_msgs::Pose2D>& path_uncleaned, std::vector<geometry_msgs::Pose2D>& path, const double min_dist_squared);
+	void downsampleTrajectory(const std::vector<geometry_msgs::msg::Pose2D>& path_uncleaned, std::vector<geometry_msgs::msg::Pose2D>& path, const double min_dist_squared);
 
 
 	// excute the planned trajectory and drive to unexplored areas after moving along the computed path
-	void navigateExplorationPath(const std::vector<geometry_msgs::Pose2D>& exploration_path, const std::vector<geometry_msgs::Point32>& field_of_view,
-			const geometry_msgs::Point32& field_of_view_origin, const double coverage_radius, const double distance_robot_fov_middlepoint,
-			const float map_resolution, const geometry_msgs::Pose& map_origin, const double grid_spacing_in_pixel, const double map_height);
+	void navigateExplorationPath(const std::vector<geometry_msgs::msg::Pose2D>& exploration_path, const std::vector<geometry_msgs::msg::Point32>& field_of_view,
+			const geometry_msgs::msg::Point32& field_of_view_origin, const double coverage_radius, const double distance_robot_fov_middlepoint,
+			const float map_resolution, const geometry_msgs::msg::Pose& map_origin, const double grid_spacing_in_pixel, const double map_height);
 
 	// function to publish a navigation goal, it returns true if the goal could be reached
 	// eps_x and eps_y are used to define a epsilon neighborhood around the goal in which a new nav_goal gets published
 	// 	--> may smooth the process, move_base often slows before and stops at the goal
-	bool publishNavigationGoal(const geometry_msgs::Pose2D& nav_goal, const std::string map_frame,
-			const std::string camera_frame, std::vector<geometry_msgs::Pose2D>& robot_poses,
+	bool publishNavigationGoal(const geometry_msgs::msg::Pose2D& nav_goal, const std::string map_frame,
+			const std::string camera_frame, std::vector<geometry_msgs::msg::Pose2D>& robot_poses,
 			const double robot_to_fov_middlepoint_distance, const double eps = 0.0,
 			const bool perimeter_check = false);
 
@@ -296,6 +299,8 @@ protected:
 	rclcpp_action::Server<RoomExploration>::SharedPtr action_server_;
 	rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_handle_;
 
+	rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
+	nav_msgs::msg::OccupancyGrid global_costmap_;
 public:
 	enum PlanningMode {PLAN_FOR_FOOTPRINT=1, PLAN_FOR_FOV=2};
 

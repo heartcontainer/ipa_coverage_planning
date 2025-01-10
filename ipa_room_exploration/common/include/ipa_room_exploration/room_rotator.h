@@ -66,7 +66,7 @@
 
 #include <vector>
 
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 
 
 class RoomRotator
@@ -91,13 +91,13 @@ public:
 	double computeRoomMainDirection(const cv::Mat& room_map, const double map_resolution);
 
 	// transforms a vector of points back to the original map and generates poses
-	void transformPathBackToOriginalRotation(const std::vector<cv::Point2f>& fov_middlepoint_path, std::vector<geometry_msgs::Pose2D>& path_fov_poses, const cv::Mat& R);
+	void transformPathBackToOriginalRotation(const std::vector<cv::Point2f>& fov_middlepoint_path, std::vector<geometry_msgs::msg::Pose2D>& path_fov_poses, const cv::Mat& R);
 
 	// converts a point path to a pose path with angles
-	void transformPointPathToPosePath(const std::vector<cv::Point2f>& point_path, std::vector<geometry_msgs::Pose2D>& pose_path);
+	void transformPointPathToPosePath(const std::vector<cv::Point2f>& point_path, std::vector<geometry_msgs::msg::Pose2D>& pose_path);
 
 	// converts a point path to a pose path with angles, the points are already stored in pose_path
-	void transformPointPathToPosePath(std::vector<geometry_msgs::Pose2D>& pose_path);
+	void transformPointPathToPosePath(std::vector<geometry_msgs::msg::Pose2D>& pose_path);
 
 	// get min/max coordinates of free pixels (255)
 	void getMinMaxCoordinates(const cv::Mat& map, cv::Point& min_room, cv::Point& max_room);

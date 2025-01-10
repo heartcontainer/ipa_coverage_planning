@@ -30,6 +30,8 @@ set(msg_files
 set(srv_files
   srv/CheckCoverage.srv
   srv/ExtractAreaMapFromLabeledMap.srv
+  srv/CheckPerimeterAccessibility.srv
+  srv/CheckPointAccessibility.srv
 )
 
 # Generate interfaces

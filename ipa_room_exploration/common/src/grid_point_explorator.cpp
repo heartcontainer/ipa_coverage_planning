@@ -85,7 +85,7 @@ void GridPointExplorator::tsp_solver_thread(const int tsp_solver, std::vector<in
 //			Poses are computed, by calculating a vector from the old node to the next and using the angle of this with the x-axis
 //			as angle for the Poses.
 // room_map = expects to receive the original, not inflated room map
-void GridPointExplorator::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path, const double map_resolution,
+void GridPointExplorator::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path, const double map_resolution,
 		const cv::Point starting_position, const cv::Point2d map_origin, const int cell_size, const bool plan_for_footprint,
 		const Eigen::Matrix<float, 2, 1> robot_to_fov_vector, int tsp_solver, int64_t tsp_solver_timeout)
 {
@@ -216,7 +216,7 @@ void GridPointExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 		fov_middlepoint_path[point_index] = cv::Point2f(grid_points[optimal_order[point_index]].x, grid_points[optimal_order[point_index]].y);
 
 	// transform the calculated path back to the originally rotated map and create poses with an angle
-	std::vector<geometry_msgs::Pose2D> path_fov_poses;
+	std::vector<geometry_msgs::msg::Pose2D> path_fov_poses;
 	room_rotation.transformPathBackToOriginalRotation(fov_middlepoint_path, path_fov_poses, R);
 
 //	for(unsigned int point_index = 0; point_index < fov_middlepoint_path.size(); ++point_index)
@@ -229,7 +229,7 @@ void GridPointExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 //		float angle = std::atan2(vector.y, vector.x);//std::acos(quotient);
 //
 //		// add the next navigation goal to the path
-//		geometry_msgs::Pose2D navigation_goal;
+//		geometry_msgs::msg::Pose2D navigation_goal;
 //		navigation_goal.x = (current_point.x * map_resolution) + map_origin.x; // coordinate systems are rotated to each other
 //		navigation_goal.y = (current_point.y * map_resolution) + map_origin.y;
 //		navigation_goal.theta = angle;
@@ -240,9 +240,9 @@ void GridPointExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 	// if the path should be planned for the robot footprint create the path and return here
 	if(plan_for_footprint == true)
 	{
-		for(std::vector<geometry_msgs::Pose2D>::iterator pose=path_fov_poses.begin(); pose != path_fov_poses.end(); ++pose)
+		for(std::vector<geometry_msgs::msg::Pose2D>::iterator pose=path_fov_poses.begin(); pose != path_fov_poses.end(); ++pose)
 		{
-			geometry_msgs::Pose2D current_pose;
+			geometry_msgs::msg::Pose2D current_pose;
 			current_pose.x = (pose->x * map_resolution) + map_origin.x;
 			current_pose.y = (pose->y * map_resolution) + map_origin.y;
 			current_pose.theta = pose->theta;

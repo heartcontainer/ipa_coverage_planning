@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 project(ipa_building_navigation)
 
-# Use C++11 standard
-set(CMAKE_CXX_STANDARD 17)
-# set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_options(-std=c++17)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
@@ -120,5 +118,4 @@ install(DIRECTORY ros/launch DESTINATION share/${PROJECT_NAME}/launch)
 
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME} tsp_solvers)
-# ament_export_dependencies(${dependencies})
 ament_package()
