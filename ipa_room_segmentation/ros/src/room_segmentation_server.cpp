@@ -62,9 +62,7 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <ipa_room_segmentation/meanshift2d.h>
 #include <ament_index_cpp/get_package_share_directory.hpp>
-// #include <ipa_room_segmentation/dynamic_reconfigure_client.h>
-
-// #include <boost/algorithm/string.hpp>
+#include "dynamic_reconfigure.h"
 
 static bool DEBUG_DISPLAYS = false;
 
@@ -272,8 +270,7 @@ RoomSegmentationServer::RoomSegmentationServer(const rclcpp::NodeOptions &option
 			this->get_parameter("vrf_voronoi_node_maps_file_list", vrf_voronoi_node_maps_file_list_);
 			std::cout << "room_segmentation/vrf_voronoi_node_maps_file_list = \n";
 			for (size_t i = 0; i < vrf_voronoi_node_maps_file_list_.size(); ++i)
-				std::cout << "   " << vrf_voronoi_node_maps_file_list_[i] << std::endl
-						  << std::endl;
+				std::cout << "   " << vrf_voronoi_node_maps_file_list_[i] << std::endl;
 
 			RCLCPP_INFO(this->get_logger(), "You have chosen to train the voronoi random field segmentation method.\n");
 
@@ -342,96 +339,47 @@ rcl_interfaces::msg::SetParametersResult RoomSegmentationServer::dynamic_reconfi
 {
 	RCLCPP_INFO(this->get_logger(), "Dynamic reconfigure request.");
 	rcl_interfaces::msg::SetParametersResult result;
-
+	using dynamic_reconfigure::reset_value_if_name_equals;
 	for (const auto &param : parameters)
 	{
-		if (param.get_name() == "room_segmentation_algorithm")
+		if (reset_value_if_name_equals("room_segmentation_algorithm", &room_segmentation_algorithm_, &param) ||
+			reset_value_if_name_equals("display_segmented_map", &display_segmented_map_, &param) ||
+			reset_value_if_name_equals("publish_segmented_map", &publish_segmented_map_, &param) ||
+			// 1
+			reset_value_if_name_equals("room_area_factor_upper_limit_morphological", &room_upper_limit_morphological_, &param) ||
+			reset_value_if_name_equals("room_area_factor_lower_limit_morphological", &room_lower_limit_morphological_, &param) ||
+			// 2
+			reset_value_if_name_equals("room_area_factor_upper_limit_distance", &room_upper_limit_distance_, &param) ||
+			reset_value_if_name_equals("room_area_factor_lower_limit_distance", &room_lower_limit_distance_, &param) ||
+			// 3
+			reset_value_if_name_equals("room_area_factor_upper_limit_voronoi", &room_upper_limit_voronoi_, &param) ||
+			reset_value_if_name_equals("room_area_factor_lower_limit_voronoi", &room_lower_limit_voronoi_, &param) ||
+			reset_value_if_name_equals("voronoi_neighborhood_index", &voronoi_neighborhood_index_, &param) ||
+			reset_value_if_name_equals("min_critical_point_distance_factor", &min_critical_point_distance_factor_, &param) ||
+			// 4
+			reset_value_if_name_equals("room_area_factor_upper_limit_semantic", &room_upper_limit_semantic_, &param) ||
+			reset_value_if_name_equals("room_area_factor_lower_limit_semantic", &room_lower_limit_semantic_, &param) ||
+			// 5
+			reset_value_if_name_equals("room_area_upper_limit_voronoi_random", &room_upper_limit_voronoi_random_, &param) ||
+			reset_value_if_name_equals("room_area_lower_limit_voronoi_random", &room_lower_limit_voronoi_random_, &param) ||
+			reset_value_if_name_equals("voronoi_random_field_epsilon_for_neighborhood", &voronoi_random_field_epsilon_for_neighborhood_, &param) ||
+			reset_value_if_name_equals("min_neighborhood_size", &min_neighborhood_size_, &param) ||
+			reset_value_if_name_equals("min_voronoi_random_field_node_distance", &min_voronoi_random_field_node_distance_, &param) ||
+			reset_value_if_name_equals("max_voronoi_random_field_inference_iterations", &max_voronoi_random_field_inference_iterations_, &param) ||
+			// 3 & 5
+			reset_value_if_name_equals("max_iterations", &max_iterations_, &param) ||
+			reset_value_if_name_equals("max_area_for_merging", &max_area_for_merging_, &param))
 		{
-			// Handle updates to room_segmentation_algorithm
-			room_segmentation_algorithm_ = param.as_int();
-			RCLCPP_INFO(this->get_logger(), "Updated algorithm to: %d", room_segmentation_algorithm_);
+			continue;
+		}
+		else
+		{
+			RCLCPP_ERROR(this->get_logger(), "Unknown parameter: %s", param.get_name().c_str());
+			result.successful = false;
+			result.reason = "Unknown parameter '" + param.get_name() + "'";
+			return result;
 		}
 	}
-	// 	// set segmentation algorithm
-	// 	std::cout << "######################################################################################" << std::endl;
-	// 	std::cout << "Dynamic reconfigure request:" << std::endl;
-
-	// 	room_segmentation_algorithm_ = config.room_segmentation_algorithm;
-	// 	std::cout << "room_segmentation/room_segmentation_algorithm = " << room_segmentation_algorithm_ << std::endl;
-
-	// 	// set parameters regarding the chosen algorithm
-	// 	//if (room_segmentation_algorithm_ == 1) //set morphological parameters
-	// 	{
-	// 		room_upper_limit_morphological_ = config.room_area_factor_upper_limit_morphological;
-	// 		room_lower_limit_morphological_ = config.room_area_factor_lower_limit_morphological;
-	// 		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_morphological_ << std::endl;
-	// 		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_morphological_ << std::endl;
-	// 	}
-	// 	//if (room_segmentation_algorithm_ == 2) //set distance parameters
-	// 	{
-	// 		room_upper_limit_distance_ = config.room_area_factor_upper_limit_distance;
-	// 		room_lower_limit_distance_ = config.room_area_factor_lower_limit_distance;
-	// 		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_distance_ << std::endl;
-	// 		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_distance_ << std::endl;
-	// 	}
-	// 	//if (room_segmentation_algorithm_ == 3) //set voronoi parameters
-	// 	{
-	// 		room_upper_limit_voronoi_ = config.room_area_factor_upper_limit_voronoi;
-	// 		room_lower_limit_voronoi_ = config.room_area_factor_lower_limit_voronoi;
-	// 		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_voronoi_ << std::endl;
-	// 		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_voronoi_ << std::endl;
-
-	// 		voronoi_neighborhood_index_ = config.voronoi_neighborhood_index;
-	// 		max_iterations_ = config.max_iterations;
-	// 		min_critical_point_distance_factor_ = config.min_critical_point_distance_factor;
-	// 		max_area_for_merging_ = config.max_area_for_merging;
-	// 		std::cout << "room_segmentation/voronoi_neighborhood_index = " << voronoi_neighborhood_index_ << std::endl;
-	// 		std::cout << "room_segmentation/max_iterations = " << max_iterations_ << std::endl;
-	// 		std::cout << "room_segmentation/min_critical_point_distance_factor = " << min_critical_point_distance_factor_ << std::endl;
-	// 		std::cout << "room_segmentation/max_area_for_merging = " << max_area_for_merging_ << std::endl;
-	// 	}
-	// 	//if (room_segmentation_algorithm_ == 4) //set semantic parameters
-	// 	{
-	// 		room_upper_limit_semantic_ = config.room_area_factor_upper_limit_semantic;
-	// 		room_lower_limit_semantic_ = config.room_area_factor_lower_limit_semantic;
-	// 		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_semantic_ << std::endl;
-	// 		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_semantic_ << std::endl;
-	// 	}
-	// 	//if (room_segmentation_algorithm_ == 5) //set voronoi random field parameters
-	// 	{
-	// 		room_upper_limit_voronoi_random_ = config.room_area_upper_limit_voronoi_random;
-	// 		room_lower_limit_voronoi_random_ = config.room_area_lower_limit_voronoi_random;
-
-	// 		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_voronoi_random_ << std::endl;
-	// 		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_voronoi_random_ << std::endl;
-
-	// 		voronoi_random_field_epsilon_for_neighborhood_ = config.voronoi_random_field_epsilon_for_neighborhood;
-	// 		min_neighborhood_size_ = config.min_neighborhood_size;
-	// 		max_iterations_ = config.max_iterations;
-	// 		min_voronoi_random_field_node_distance_ = config.min_voronoi_random_field_node_distance;
-	// 		max_voronoi_random_field_inference_iterations_ = config.max_voronoi_random_field_inference_iterations;
-	// 		max_area_for_merging_ = config.max_area_for_merging;
-
-	// 		std::cout << "room_segmentation/voronoi_random_field_epsilon_for_neighborhood = " << voronoi_random_field_epsilon_for_neighborhood_ << std::endl;
-	// 		std::cout << "room_segmentation/min_neighborhood_size = " << min_neighborhood_size_ << std::endl;
-	// 		std::cout << "room_segmentation/max_iterations = " << max_iterations_ << std::endl;
-	// 		std::cout << "room_segmentation/min_voronoi_random_field_node_distance = " << min_voronoi_random_field_node_distance_ << std::endl;
-	// 		std::cout << "room_segmentation/max_voronoi_random_field_inference_iterations = " << max_voronoi_random_field_inference_iterations_ << std::endl;
-	// 		std::cout << "room_segmentation/max_area_for_merging = " << max_area_for_merging_ << std::endl;
-	// 	}
-	// 	//if (room_segmentation_algorithm_ == 99)	//set passthrough parameters
-	// 	{
-	// 		room_upper_limit_passthrough_ = config.room_area_upper_limit_passthrough;
-	// 		room_lower_limit_passthrough_ = config.room_area_lower_limit_passthrough;
-
-	// 		std::cout << "room_segmentation/room_area_factor_upper_limit = " << room_upper_limit_passthrough_ << std::endl;
-	// 		std::cout << "room_segmentation/room_area_factor_lower_limit = " << room_lower_limit_passthrough_ << std::endl;
-	// 	}
-	// 	display_segmented_map_ = config.display_segmented_map;
-	// 	std::cout << "room_segmentation/display_segmented_map = " << display_segmented_map_ << std::endl;
-	// 	publish_segmented_map_ = config.publish_segmented_map;
-	// 	std::cout << "room_segmentation/publish_segmented_map = " << publish_segmented_map_ << std::endl;
-	// 	std::cout << "######################################################################################" << std::endl;
 	result.successful = true;
 	return result;
 }
@@ -464,52 +412,6 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 	// set the resolution and the limits for the actual goal and the Map origin
 	const float map_resolution = goal->map_resolution;
 	const cv::Point2d map_origin(goal->map_origin.position.x, goal->map_origin.position.y);
-
-	// these preset values are deactivated because they would override the dynamic reconfigure configuration
-	//	const int room_segmentation_algorithm_value = room_segmentation_algorithm_;
-	//	if (goal->room_segmentation_algorithm > 0 && goal->room_segmentation_algorithm < 6)
-	//	{
-	//		room_segmentation_algorithm_ = goal->room_segmentation_algorithm;
-	//		if(room_segmentation_algorithm_ == 1) //morpho
-	//		{
-	//			room_lower_limit_morphological_ = 0.8;
-	//			room_upper_limit_morphological_ = 47.0;
-	//			RCLCPP_INFO(this->get_logger(), "You have chosen the morphologcial segmentation.");
-	//		}
-	//		if(room_segmentation_algorithm_ == 2) //distance
-	//		{
-	//			room_lower_limit_distance_ = 0.35;
-	//			room_upper_limit_distance_ = 163.0;
-	//			RCLCPP_INFO(this->get_logger(), "You have chosen the distance segmentation.");
-	//		}
-	//		if(room_segmentation_algorithm_ == 3) //voronoi
-	//		{
-	//			room_lower_limit_voronoi_ = 0.1;	//1.53;
-	//			room_upper_limit_voronoi_ = 1000000.;	//120.0;
-	//			voronoi_neighborhood_index_ = 280;
-	//			max_iterations_ = 150;
-	//			min_critical_point_distance_factor_ = 0.5; //1.6;
-	//			max_area_for_merging_ = 12.5;
-	//			RCLCPP_INFO(this->get_logger(), "You have chosen the Voronoi segmentation");
-	//		}
-	//		if(room_segmentation_algorithm_ == 4) //semantic
-	//		{
-	//			room_lower_limit_semantic_ = 1.0;
-	//			room_upper_limit_semantic_ = 1000000.;//23.0;
-	//			RCLCPP_INFO(this->get_logger(), "You have chosen the semantic segmentation.");
-	//		}
-	//		if(room_segmentation_algorithm_ == 5) //voronoi random field
-	//		{
-	//			room_lower_limit_voronoi_random_ = 1.53; //1.53
-	//			room_upper_limit_voronoi_random_ = 1000000.; //1000000.0
-	//			voronoi_random_field_epsilon_for_neighborhood_ = 7;
-	//			min_neighborhood_size_ = 5;
-	//			min_voronoi_random_field_node_distance_ = 7; // [pixel]
-	//			max_voronoi_random_field_inference_iterations_ = 9000;
-	//			max_area_for_merging_ = 12.5;
-	//			RCLCPP_INFO(this->get_logger(), "You have chosen the voronoi random field segmentation.");
-	//		}
-	//	}
 
 	// segment the given map
 	cv::Mat segmented_map;

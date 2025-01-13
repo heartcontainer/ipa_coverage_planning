@@ -41,6 +41,6 @@ namespace dynamic_reconfigure
     }
 
     // client
-    bool update_parameters(rclcpp::Node *node, const std::string &remote_node_name,const std::vector<rclcpp::Parameter> &parameters);
+    bool update_parameters(rclcpp::Node *node, const std::string &remote_node_name, const std::vector<rclcpp::Parameter> &parameters);
 }
 #endif // DYNAMIC_RECONFIGURE_H_

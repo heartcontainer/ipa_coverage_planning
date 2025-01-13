@@ -59,7 +59,7 @@
 
 #include <ipa_building_navigation/room_sequence_planning_action_server.h>
 
-RoomSequencePlanningServer::RoomSequencePlanningServer(const rclcpp::NodeOptions &options) : rclcpp::Node("room_sequence_planning_server", options)
+RoomSequencePlanningServer::RoomSequencePlanningServer() : rclcpp::Node("room_sequence_planning_server", rclcpp::NodeOptions())
 {
 	// Action server setup
 	action_server_ = rclcpp_action::create_server<FindRoomSequenceWithCheckpoints>(
@@ -961,7 +961,7 @@ void RoomSequencePlanningServer::publishSequenceVisualization(const std::vector<
 int main(int argc, char **argv)
 {
 	rclcpp::init(argc, argv);
-	auto node = std::make_shared<RoomSequencePlanningServer>(rclcpp::NodeOptions());
+	auto node = std::make_shared<RoomSequencePlanningServer>();
 	RCLCPP_INFO(node->get_logger(), "Action server for room sequence planning has been initialized......");
 	rclcpp::spin(node);
 	rclcpp::shutdown();

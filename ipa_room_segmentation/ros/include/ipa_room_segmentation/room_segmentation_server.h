@@ -63,13 +63,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 
-// #include <sensor_msgs/image_encodings.h>
 #include "nav_msgs/msg/occupancy_grid.hpp"
-// #include <actionlib/server/simple_action_server.h>
 #include <rclcpp_action/rclcpp_action.hpp>
-
-// #include <dynamic_reconfigure/server.h>
-// #include <ipa_room_segmentation/RoomSegmentationConfig.h>
 
 #include <iostream>
 #include <list>

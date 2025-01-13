@@ -85,8 +85,6 @@ public:
             this,
             "/room_segmentation/room_segmentation_server");
 
-        // parameter_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this, "/room_segmentation/room_segmentation_server");
-
         this->declare_parameter<std::string>("image_path", "");
         this->declare_parameter<int>("room_segmentation_algorithm", 3);
         this->get_parameter("image_path", this->image_path_);
@@ -100,31 +98,59 @@ public:
         else
         {
             RCLCPP_INFO(this->get_logger(), "Using image: %s", this->image_path_.c_str());
-            if (dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
-                                                       {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_)}))
+            if (update_parameters())
             {
                 send_goal();
             }
         }
     }
 
-    // void update_parameters()
-    // {
-    //     while (!parameter_client_->wait_for_service(std::chrono::seconds(2)))
-    //     {
-    //         RCLCPP_INFO(this->get_logger(), "Waiting for parameter service to become available...");
-    //     }
-
-    //     RCLCPP_INFO(this->get_logger(), "Parameter service is ready.");
-
-    //     auto results = parameter_client_->set_parameters_atomically(
-    //         {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_)});
-
-    //     rclcpp::spin_until_future_complete(
-    //         this->get_node_base_interface(),
-    //         results);
-    //     RCLCPP_INFO(this->get_logger(), "Updated room_segmentation_algorithm to %d", this->room_segmentation_algorithm_);
-    // }
+    bool update_parameters()
+    {
+        switch (room_segmentation_algorithm_)
+        {
+        case 1:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_morphological", 47.0),
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_morphological", 0.8)});
+        case 2:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_distance", 163.0),
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_distance", 0.35)});
+        case 3:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_voronoi", 1000000.0), // 120.0;
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_voronoi", 0.1),       // 1.53;
+                                                           rclcpp::Parameter("voronoi_neighborhood_index", 280),
+                                                           rclcpp::Parameter("max_iterations", 150),
+                                                           rclcpp::Parameter("min_critical_point_distance_factor", 0.5), // 1.6;
+                                                           rclcpp::Parameter("max_area_for_merging", 12.5)});
+        case 4:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_semantic", 23.0),
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_semantic", 1.0)});
+        case 5:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_upper_limit_voronoi_random", 10000.0),
+                                                           rclcpp::Parameter("room_area_lower_limit_voronoi_random", 1.53),
+                                                           rclcpp::Parameter("voronoi_random_field_epsilon_for_neighborhood", 7),
+                                                           rclcpp::Parameter("min_neighborhood_size", 5),
+                                                           rclcpp::Parameter("min_voronoi_random_field_node_distance", 7.0),
+                                                           rclcpp::Parameter("max_voronoi_random_field_inference_iterations", 9000),
+                                                           rclcpp::Parameter("max_area_for_merging", 12.5)});
+        case 99:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_)});
+        default:
+            RCLCPP_ERROR(this->get_logger(), "Unknown room segmentation algorithm: %d", room_segmentation_algorithm_);
+            return false;
+        }
+    }
 
     sensor_msgs::msg::Image create_image_message()
     {
@@ -183,7 +209,6 @@ public:
 
 private:
     rclcpp_action::Client<MapSegmentation>::SharedPtr client_ptr_;
-    // std::shared_ptr<rclcpp::AsyncParametersClient> parameter_client_;
     std::string image_path_;
     int room_segmentation_algorithm_;
 

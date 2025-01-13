@@ -21,10 +21,6 @@
   <depend>sensor_msgs</depend>
   <depend>action_msgs</depend>
 
-  <!-- Test dependencies (optional) -->
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
-
   <!-- Export dependencies -->
   <export>
     <build_type>ament_cmake</build_type>
