@@ -29,7 +29,7 @@ void LaserScannerFeatures::resetCachedData()
 
 //**********************see features.h for a better overview of what is calculated and needed*************************
 //Method for calculating the feature for the classifier
-double LaserScannerFeatures::get_feature(const std::vector<double>& beams, const std::vector<double>& angles, cv::Point point, const int feature)
+double LaserScannerFeatures::get_feature(const std::vector<double> &beams, const std::vector<double> &angles, cv::Point point, const int feature)
 {
 	switch (feature)
 	{
@@ -79,6 +79,11 @@ double LaserScannerFeatures::get_feature(const std::vector<double>& beams, const
 		return calc_feature22(beams);
 	case 23:
 		return calc_feature23(beams);
+	default:
+	{
+		std::cout << "Error: Feature " << feature << " not implemented!" << std::endl;
+		return 0;
+	}
 	}
 }
 

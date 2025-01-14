@@ -77,7 +77,7 @@
 #include <ipa_room_exploration/room_rotator.h>
 #include <ipa_room_exploration/grid.h>
 
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 #include <geometry_msgs/Polygon.h>
 #include <geometry_msgs/Point32.h>
 
@@ -309,7 +309,7 @@ public:
 	// Function that creates an exploration path for a given room. The room has to be drawn in a cv::Mat (filled with Bit-uchar),
 	// with free space drawn white (255) and obstacles as black (0). It returns a series of 2D poses that show to which positions
 	// the robot should drive at.
-	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path, const float map_resolution,
+	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path, const float map_resolution,
 				const cv::Point starting_position, const cv::Point2d map_origin, const double grid_spacing_in_pixel,
 				const double grid_obstacle_offset, const double path_eps, const int cell_visiting_order, const bool plan_for_footprint,
 				const Eigen::Matrix<float, 2, 1> robot_to_fov_vector, const double min_cell_area, const int max_deviation_from_track);

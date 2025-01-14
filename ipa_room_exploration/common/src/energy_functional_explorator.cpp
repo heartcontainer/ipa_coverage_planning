@@ -66,7 +66,7 @@ double EnergyFunctionalExplorator::E(const EnergyExploratorNode& location, const
 //		the distance to the last robot position is minimized. If this is not wanted one has to set the corresponding
 //		Boolean to false (shows that the path planning should be done for the robot footprint).
 //
-void EnergyFunctionalExplorator::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path, const float map_resolution,
+void EnergyFunctionalExplorator::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path, const float map_resolution,
 			const cv::Point starting_position, const cv::Point2d map_origin, const double grid_spacing_in_pixel,
 			const bool plan_for_footprint, const Eigen::Matrix<float, 2, 1> robot_to_fov_vector)
 {
@@ -335,15 +335,15 @@ void EnergyFunctionalExplorator::getExplorationPath(const cv::Mat& room_map, std
 	} while (true);
 
 	// transform the calculated path back to the originally rotated map
-	std::vector<geometry_msgs::Pose2D> fov_poses;
+	std::vector<geometry_msgs::msg::Pose2D> fov_poses;
 	room_rotation.transformPathBackToOriginalRotation(fov_coverage_path, fov_poses, R);
 
 //	// go trough the found fov-path and compute the angles of the poses s.t. it points to the next pose that should be visited
 //	for(unsigned int point_index=0; point_index<fov_coverage_path.size(); ++point_index)
 //	{
 //		// get the vector from the current point to the next point
-//		geometry_msgs::Pose2D current_point = fov_coverage_path[point_index];
-//		geometry_msgs::Pose2D next_point = fov_coverage_path[(point_index+1)%(fov_coverage_path.size())];
+//		geometry_msgs::msg::Pose2D current_point = fov_coverage_path[point_index];
+//		geometry_msgs::msg::Pose2D next_point = fov_coverage_path[(point_index+1)%(fov_coverage_path.size())];
 //
 //		float angle = std::atan2(next_point.y-current_point.y, next_point.x-current_point.x);
 //
@@ -354,9 +354,9 @@ void EnergyFunctionalExplorator::getExplorationPath(const cv::Mat& room_map, std
 	// if the path should be planned for the footprint, transform the image points to the map coordinates
 	if(plan_for_footprint==true)
 	{
-		for(std::vector<geometry_msgs::Pose2D>::iterator pose=fov_poses.begin(); pose!=fov_poses.end(); ++pose)
+		for(std::vector<geometry_msgs::msg::Pose2D>::iterator pose=fov_poses.begin(); pose!=fov_poses.end(); ++pose)
 		{
-			geometry_msgs::Pose2D current_pose;
+			geometry_msgs::msg::Pose2D current_pose;
 			current_pose.x = (pose->x * map_resolution) + map_origin.x;
 			current_pose.y = (pose->y * map_resolution) + map_origin.y;
 			current_pose.theta = pose->theta;
@@ -380,7 +380,7 @@ void EnergyFunctionalExplorator::getExplorationPath(const cv::Mat& room_map, std
 
 	// ****************** IV. Map the found fov path to the robot path ******************
 	//mapPath(room_map, path, fov_poses, robot_to_fov_vector, map_resolution, map_origin, starting_position);
-	ROS_INFO("Starting to map from field of view pose to robot pose");
+	std::cout << "Starting to map from field of view pose to robot pose" << std::endl;
 	cv::Point robot_starting_position = (fov_poses.size()>0 ? cv::Point(fov_poses[0].x, fov_poses[0].y) : starting_position);
 	cv::Mat inflated_room_map;
 	cv::erode(room_map, inflated_room_map, cv::Mat(), cv::Point(-1, -1), half_grid_spacing_as_int);

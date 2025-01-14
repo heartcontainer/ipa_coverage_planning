@@ -61,7 +61,7 @@
 #include <vector>
 #include <string>
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <dynamic_reconfigure/server.h>
 #include <dynamic_reconfigure/BoolParameter.h>
@@ -153,7 +153,7 @@ public:
 		coverage_marker_msg.color.g = 1.0f;
 		coverage_marker_msg.color.b = 0.0f;
 		coverage_marker_msg.color.a = 0.33;
-		coverage_marker_msg.lifetime = ros::Duration();
+		coverage_marker_msg.lifetime = rclcpp::Duration::from_seconds(0);
 		geometry_msgs::Point p; p.x=0; p.y=0; p.z=0;
 		coverage_marker_msg.points.push_back(p);
 
@@ -187,7 +187,7 @@ public:
 		computed_trajectory_marker_msg.color.g = 0.0f;
 		computed_trajectory_marker_msg.color.b = 0.0f;
 		computed_trajectory_marker_msg.color.a = 0.8;
-		computed_trajectory_marker_msg.lifetime = ros::Duration();
+		computed_trajectory_marker_msg.lifetime = rclcpp::Duration::from_seconds(0);
 		computed_trajectory_marker_msg.points.push_back(p);
 
 		// prepare commanded_trajectory_marker_msg message
@@ -220,7 +220,7 @@ public:
 		commanded_trajectory_marker_msg.color.g = 0.0f;
 		commanded_trajectory_marker_msg.color.b = 1.0f;
 		commanded_trajectory_marker_msg.color.a = 0.8;
-		commanded_trajectory_marker_msg.lifetime = ros::Duration();
+		commanded_trajectory_marker_msg.lifetime = rclcpp::Duration::from_seconds(0);
 		commanded_trajectory_marker_msg.points.push_back(p);
 
 		// cyclically publish marker messages

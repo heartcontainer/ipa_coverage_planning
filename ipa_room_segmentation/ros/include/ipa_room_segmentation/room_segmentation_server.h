@@ -57,113 +57,119 @@
  *
  ****************************************************************/
 
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 
-#include <sensor_msgs/image_encodings.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <actionlib/server/simple_action_server.h>
-
-#include <dynamic_reconfigure/server.h>
-#include <ipa_room_segmentation/RoomSegmentationConfig.h>
+#include "nav_msgs/msg/occupancy_grid.hpp"
+#include <rclcpp_action/rclcpp_action.hpp>
 
 #include <iostream>
 #include <list>
 #include <string>
 #include <vector>
 
-
-#include <ipa_building_msgs/MapSegmentationAction.h>
-#include <ipa_building_msgs/RoomInformation.h>
-#include <ipa_building_msgs/ExtractAreaMapFromLabeledMap.h>
+#include <ipa_building_msgs/action/map_segmentation.hpp>
+#include <ipa_building_msgs/msg/room_information.hpp>
+#include <ipa_building_msgs/srv/extract_area_map_from_labeled_map.hpp>
 
 #include <ipa_room_segmentation/distance_segmentation.h>
 #include <ipa_room_segmentation/morphological_segmentation.h>
 #include <ipa_room_segmentation/voronoi_segmentation.h>
 #include <ipa_room_segmentation/adaboost_classifier.h>
 #include <ipa_room_segmentation/voronoi_random_field_segmentation.h>
+#include <rclcpp_action/rclcpp_action.hpp>
 
-class RoomSegmentationServer
+class RoomSegmentationServer : public rclcpp::Node
 {
-protected:
+public:
+	using MapSegmentation = ipa_building_msgs::action::MapSegmentation;
+	using GoalHandleMapSegmentation = rclcpp_action::ServerGoalHandle<MapSegmentation>;
 
+protected:
 	// parameters
-	//limits for the room-areas
+	// limits for the room-areas
 	double room_upper_limit_morphological_, room_upper_limit_distance_, room_upper_limit_voronoi_, room_upper_limit_semantic_, room_upper_limit_voronoi_random_, room_upper_limit_passthrough_;
 	double room_lower_limit_morphological_, room_lower_limit_distance_, room_lower_limit_voronoi_, room_lower_limit_semantic_, room_lower_limit_voronoi_random_, room_lower_limit_passthrough_;
-	int room_segmentation_algorithm_;	// this variable selects the algorithm for room segmentation,
-										// 1 = morphological segmentation
-										// 2 = distance segmentation
-										// 3 = Voronoi segmentation
-										// 4 = semantic segmentation
-										// 5 = voronoi-random-field segmentation
-										// 99 = pass through segmentation
+	int room_segmentation_algorithm_; // this variable selects the algorithm for room segmentation,
+									  // 1 = morphological segmentation
+									  // 2 = distance segmentation
+									  // 3 = Voronoi segmentation
+									  // 4 = semantic segmentation
+									  // 5 = voronoi-random-field segmentation
+									  // 99 = pass through segmentation
 
-	bool train_semantic_, train_vrf_; //Boolean to say if the algorithm needs to be trained
-	bool load_semantic_features_; //Boolean to say if the training of the semantic algorithm should load precomputed features
+	bool train_semantic_, train_vrf_; // Boolean to say if the algorithm needs to be trained
+	bool load_semantic_features_;	  // Boolean to say if the training of the semantic algorithm should load precomputed features
 
-	int voronoi_neighborhood_index_; //Variable for the Voronoi method that specifies the neighborhood that is looked at for critical Point extraction
-	int voronoi_random_field_epsilon_for_neighborhood_; //Variable that specifies the neighborhood for the vrf-segmentation.
-	int max_iterations_; //number of iterations for search of neighborhood in voronoi method and vrf method
-	int min_neighborhood_size_; //Variable that stores the minimum size of a neighborhood, used for the vrf method.
-	double min_voronoi_random_field_node_distance_; //Variable that shows how near two nodes of the conditional random field can be in the vrf method. [pixel]
-	int max_voronoi_random_field_inference_iterations_; //Variable that shows how many iterations should max. be done when infering in the conditional random field.
-	double min_critical_point_distance_factor_; //Variable that sets the minimal distance between two critical Points before one gets eliminated
-	double max_area_for_merging_; //Variable that shows the maximal area of a room that should be merged with its surrounding rooms
-	bool display_segmented_map_;	// displays the segmented map upon service call
-	bool publish_segmented_map_;	// publishes the segmented map as grid map upon service call
-	std::vector<cv::Point> doorway_points_; // vector that saves the found doorway points, when using the 5th algorithm (vrf)
+	int voronoi_neighborhood_index_;					// Variable for the Voronoi method that specifies the neighborhood that is looked at for critical Point extraction
+	int voronoi_random_field_epsilon_for_neighborhood_; // Variable that specifies the neighborhood for the vrf-segmentation.
+	int max_iterations_;								// number of iterations for search of neighborhood in voronoi method and vrf method
+	int min_neighborhood_size_;							// Variable that stores the minimum size of a neighborhood, used for the vrf method.
+	double min_voronoi_random_field_node_distance_;		// Variable that shows how near two nodes of the conditional random field can be in the vrf method. [pixel]
+	int max_voronoi_random_field_inference_iterations_; // Variable that shows how many iterations should max. be done when infering in the conditional random field.
+	double min_critical_point_distance_factor_;			// Variable that sets the minimal distance between two critical Points before one gets eliminated
+	double max_area_for_merging_;						// Variable that shows the maximal area of a room that should be merged with its surrounding rooms
+	bool display_segmented_map_;						// displays the segmented map upon service call
+	bool publish_segmented_map_;						// publishes the segmented map as grid map upon service call
+	std::vector<cv::Point> doorway_points_;				// vector that saves the found doorway points, when using the 5th algorithm (vrf)
 
 	std::vector<std::string> semantic_training_maps_room_file_list_;	// list of files containing maps with room labels for training the semantic segmentation
-	std::vector<std::string> semantic_training_maps_hallway_file_list_;	// list of files containing maps with hallway labels for training the semantic segmentation
-	std::vector<std::string> vrf_original_maps_file_list_;	// list of files containing the original maps for training the VRF segmentation
-	std::vector<std::string> vrf_training_maps_file_list_;	// list of files containing the labeled maps for training the VRF segmentation
-	std::vector<std::string> vrf_voronoi_maps_file_list_;	// list of files containing the Voronoi maps for training the VRF segmentation - these files are optional for training and just yield a speedup
-	std::vector<std::string> vrf_voronoi_node_maps_file_list_;	// list of files containing the Voronoi node maps for training the VRF segmentation - these files are optional for training and just yield a speedup
+	std::vector<std::string> semantic_training_maps_hallway_file_list_; // list of files containing maps with hallway labels for training the semantic segmentation
+	std::vector<std::string> vrf_original_maps_file_list_;				// list of files containing the original maps for training the VRF segmentation
+	std::vector<std::string> vrf_training_maps_file_list_;				// list of files containing the labeled maps for training the VRF segmentation
+	std::vector<std::string> vrf_voronoi_maps_file_list_;				// list of files containing the Voronoi maps for training the VRF segmentation - these files are optional for training and just yield a speedup
+	std::vector<std::string> vrf_voronoi_node_maps_file_list_;			// list of files containing the Voronoi node maps for training the VRF segmentation - these files are optional for training and just yield a speedup
 
-	//converter-> Pixel to meter for X coordinate
+	// converter-> Pixel to meter for X coordinate
 	double convert_pixel_to_meter_for_x_coordinate(const int pixel_valued_object_x, const float map_resolution, const cv::Point2d map_origin)
 	{
 		double meter_value_obj_x = (pixel_valued_object_x * map_resolution) + map_origin.x;
 		return meter_value_obj_x;
 	}
-	//converter-> Pixel to meter for Y coordinate
+	// converter-> Pixel to meter for Y coordinate
 	double convert_pixel_to_meter_for_y_coordinate(int pixel_valued_object_y, const float map_resolution, const cv::Point2d map_origin)
 	{
 		double meter_value_obj_y = (pixel_valued_object_y * map_resolution) + map_origin.y;
 		return meter_value_obj_y;
 	}
 
-	//This is the execution function used by action server
-	void execute_segmentation_server(const ipa_building_msgs::MapSegmentationGoalConstPtr &goal);
+	// This is the execution function used by action server
+	rclcpp_action::GoalResponse handle_goal(const rclcpp_action::GoalUUID &uuid, std::shared_ptr<const MapSegmentation::Goal> goal)
+	{
+		RCLCPP_INFO(this->get_logger(), "Goal is received..");
+		return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+	}
+	rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle)
+	{
+		return rclcpp_action::CancelResponse::ACCEPT;
+	}
+	void handle_accepted(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle);
+	void execute(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle);
 
-	//Callback for dynamic reconfigure server
-	void dynamic_reconfigure_callback(ipa_room_segmentation::RoomSegmentationConfig &config, uint32_t level);
+	// Callback for dynamic reconfigure server
+	rcl_interfaces::msg::SetParametersResult dynamic_reconfigure_callback(std::vector<rclcpp::Parameter> parameters);
 
 	// service for generating a map of one single room from a labeled map
 	// The request message provides a segmented map which consists of cells with label 0 for inaccessible areas and other number from 1 to N
 	// for labeling membership with one of the N segmented areas.
 	// The return message shall deliver the same map but with only one area (segment_of_interest) labeled as 255 and the remainder labeled
 	// as inaccessible with 0.
-	bool extractAreaMapFromLabeledMap(ipa_building_msgs::ExtractAreaMapFromLabeledMapRequest& request, ipa_building_msgs::ExtractAreaMapFromLabeledMapResponse& response);
+	bool extractAreaMapFromLabeledMap(const ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Request::SharedPtr request, ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Response::SharedPtr response);
 
-	//!!Important!!
-	// define the Nodehandle before the action server, or else the server won't start
-	//
-	ros::NodeHandle node_handle_;
-	ros::Publisher map_pub_;
-	ros::ServiceServer extract_area_map_from_labeled_map_server_;
-	actionlib::SimpleActionServer<ipa_building_msgs::MapSegmentationAction> room_segmentation_server_;
-	dynamic_reconfigure::Server<ipa_room_segmentation::RoomSegmentationConfig> room_segmentation_dynamic_reconfigure_server_;
+	rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr map_pub_;
+	rclcpp::Service<ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap>::SharedPtr extract_area_map_from_labeled_map_server_;
+
+	rclcpp_action::Server<MapSegmentation>::SharedPtr action_server_;
+	rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_handle_;
 
 public:
-	//initialize the action-server
-	RoomSegmentationServer(ros::NodeHandle nh, std::string name_of_the_action);
+	// initialize the action-server
+	explicit RoomSegmentationServer();
 
-	//Default destructor for the class
+	// Default destructor for the class
 	~RoomSegmentationServer(void)
 	{
 	}

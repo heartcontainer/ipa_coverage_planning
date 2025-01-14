@@ -160,7 +160,7 @@ std::vector<int> GeneticTSPSolver::mutatePath(const std::vector<int>& parent_pat
 	}
 	else
 	{
-		ROS_INFO("Something was wrong in mutation-function.");
+		std::cout << "Something was wrong in mutation-function." << std::endl;
 	}
 
 	return mutated_path;

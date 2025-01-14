@@ -65,8 +65,8 @@
 // is minimized.
 // Important: the room map needs to be an unsigned char single channel image, if inaccessible areas should be excluded, provide the inflated map
 // robot_to_fov_vector in [m]
-void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& robot_path,
-		const std::vector<geometry_msgs::Pose2D>& fov_path, const Eigen::Matrix<float, 2, 1>& robot_to_fov_vector,
+void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& robot_path,
+		const std::vector<geometry_msgs::msg::Pose2D>& fov_path, const Eigen::Matrix<float, 2, 1>& robot_to_fov_vector,
 		const double map_resolution, const cv::Point2d map_origin, const cv::Point& starting_point)
 {
 	// initialize helper classes
@@ -90,7 +90,7 @@ void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& robot_
 	// go trough the given poses and calculate accessible robot poses
 	// first try with A*, if this fails, call map_accessibility_analysis and finally try a directly computed pose shift
 	int found_with_astar = 0, found_with_map_acc = 0, found_with_shift = 0, not_found = 0;
-	for(std::vector<geometry_msgs::Pose2D>::const_iterator pose=fov_path.begin(); pose!=fov_path.end(); ++pose)
+	for(std::vector<geometry_msgs::msg::Pose2D>::const_iterator pose=fov_path.begin(); pose!=fov_path.end(); ++pose)
 	{
 		bool found_pose = false;
 
@@ -170,7 +170,7 @@ void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& robot_
 			// add pose to path and set robot position to it
 			if (found_pose == true)
 			{
-				geometry_msgs::Pose2D best_pose_msg;
+				geometry_msgs::msg::Pose2D best_pose_msg;
 				best_pose_msg.x = best_pose.x*map_resolution + map_origin.x;
 				best_pose_msg.y = best_pose.y*map_resolution + map_origin.y;
 				best_pose_msg.theta = best_pose.orientation;
@@ -196,7 +196,7 @@ void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& robot_
 			robot_position << pose->x-v_rel_rot(0,0), pose->y-v_rel_rot(1,0);
 
 			// check the accessibility of the found point
-			geometry_msgs::Pose2D current_pose;
+			geometry_msgs::msg::Pose2D current_pose;
 			if(robot_position(0,0) >= 0 && robot_position(1,0) >= 0 && robot_position(0,0) < room_map.cols &&
 					robot_position(1,0) < room_map.rows && room_map.at<uchar>((int)robot_position(1,0), (int)robot_position(0,0)) == 255) // position accessible
 			{
@@ -237,7 +237,7 @@ void mapPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& robot_
 			if(found_pose == true)
 			{
 				// get the angle s.t. the pose points to the fov middlepoint and save it
-				geometry_msgs::Pose2D current_pose;
+				geometry_msgs::msg::Pose2D current_pose;
 				current_pose.x = (accessible_position.x * map_resolution) + map_origin.x;
 				current_pose.y = (accessible_position.y * map_resolution) + map_origin.y;
 				current_pose.theta = std::atan2(pose->y-accessible_position.y, pose->x-accessible_position.x) - fov_to_front_offset_angle; // todo: check -fov_to_front_offset_angle

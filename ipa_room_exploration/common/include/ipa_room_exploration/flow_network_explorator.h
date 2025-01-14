@@ -30,7 +30,7 @@
 #include <ipa_room_exploration/fov_to_robot_mapper.h>
 #include <ipa_room_exploration/room_rotator.h>
 // msgs
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 #include <geometry_msgs/Polygon.h>
 #include <geometry_msgs/Point32.h>
 // if available, use Gurobi
@@ -499,7 +499,7 @@ public:
 	// with free space drawn white (255) and obstacles as black (0). It returns a series of 2D poses that show to which positions
 	// the robot should drive at. The footprint stores a polygon that is used to determine the visibility at a specific
 	// sensing pose. delta_theta provides an angular step to determine candidates for sensing poses.
-	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path, const float map_resolution,
+	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path, const float map_resolution,
 				const cv::Point starting_position, const cv::Point2d map_origin,
 				const int cell_size, const Eigen::Matrix<float, 2, 1>& robot_to_fov_middlepoint_vector, const float coverage_radius,
 				const bool plan_for_footprint, const double path_eps, const double curvature_factor, const double max_distance_factor);

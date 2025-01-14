@@ -4,6 +4,7 @@
 build/
 bin/
 lib/
+.vscode/
 
 # generated docs
 *.dox

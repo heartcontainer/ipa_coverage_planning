@@ -90,7 +90,7 @@
 #include <ipa_room_exploration/grid.h>
 #include <ipa_room_exploration/timer.h>
 
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 
 
 #define PI 3.14159265359
@@ -155,7 +155,7 @@ public:
 	//                                           (for fov planning, this may be set 0 and the function computes the maximum distance fov corner)
 	// plan_for_footprint if true, plan for the robot footprint of given radius (largest_robot_to_footprint_distance_meter);
 	//                    if false, plan for the field of view
-	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path, const float map_resolution,
+	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path, const float map_resolution,
 				const cv::Point starting_position, const cv::Point2d map_origin, const int cell_size_pixel, const double delta_theta,
 				const std::vector<Eigen::Matrix<float, 2, 1> >& fov_corners_meter, const Eigen::Matrix<float, 2, 1>& robot_to_fov_vector_meter,
 				const double largest_robot_to_footprint_distance_meter, const uint sparsity_check_range, const bool plan_for_footprint);

@@ -57,8 +57,7 @@
  *
  ****************************************************************/
 
-#include <ros/ros.h>
-#include <ros/package.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <string>
 #include <vector>
@@ -68,168 +67,235 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-#include <actionlib/client/simple_action_client.h>
-#include <actionlib/client/terminal_state.h>
-#include <ipa_building_msgs/MapSegmentationAction.h>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <ipa_building_msgs/action/map_segmentation.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include "dynamic_reconfigure.h"
 
-//#include <ipa_room_segmentation/RoomSegmentationConfig.h>
-#include <ipa_room_segmentation/dynamic_reconfigure_client.h>
+class RoomSegmentationClient : public rclcpp::Node
+{
+public:
+    using MapSegmentation = ipa_building_msgs::action::MapSegmentation;
+    using GoalHandleMapSegmentation = rclcpp_action::ClientGoalHandle<MapSegmentation>;
 
+    explicit RoomSegmentationClient()
+        : Node("room_segmentation_client", rclcpp::NodeOptions())
+    {
+        this->client_ptr_ = rclcpp_action::create_client<MapSegmentation>(
+            this,
+            "/room_segmentation/room_segmentation_server");
+
+        this->declare_parameter<std::string>("image_path", "");
+        this->declare_parameter<int>("room_segmentation_algorithm", 3);
+        this->get_parameter("image_path", this->image_path_);
+        this->get_parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_);
+
+        if (this->image_path_.empty())
+        {
+            RCLCPP_ERROR(this->get_logger(), "No image path provided");
+            rclcpp::shutdown();
+        }
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "Using image: %s", this->image_path_.c_str());
+            if (update_parameters())
+            {
+                send_goal();
+            }
+        }
+    }
+
+    bool update_parameters()
+    {
+        switch (room_segmentation_algorithm_)
+        {
+        case 1:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_morphological", 47.0),
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_morphological", 0.8)});
+        case 2:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_distance", 163.0),
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_distance", 0.35)});
+        case 3:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_voronoi", 1000000.0), // 120.0;
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_voronoi", 0.1),       // 1.53;
+                                                           rclcpp::Parameter("voronoi_neighborhood_index", 280),
+                                                           rclcpp::Parameter("max_iterations", 150),
+                                                           rclcpp::Parameter("min_critical_point_distance_factor", 0.5), // 1.6;
+                                                           rclcpp::Parameter("max_area_for_merging", 12.5)});
+        case 4:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_factor_upper_limit_semantic", 23.0),
+                                                           rclcpp::Parameter("room_area_factor_lower_limit_semantic", 1.0)});
+        case 5:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_),
+                                                           rclcpp::Parameter("room_area_upper_limit_voronoi_random", 10000.0),
+                                                           rclcpp::Parameter("room_area_lower_limit_voronoi_random", 1.53),
+                                                           rclcpp::Parameter("voronoi_random_field_epsilon_for_neighborhood", 7),
+                                                           rclcpp::Parameter("min_neighborhood_size", 5),
+                                                           rclcpp::Parameter("min_voronoi_random_field_node_distance", 7.0),
+                                                           rclcpp::Parameter("max_voronoi_random_field_inference_iterations", 9000),
+                                                           rclcpp::Parameter("max_area_for_merging", 12.5)});
+        case 99:
+            return dynamic_reconfigure::update_parameters(this, "/room_segmentation/room_segmentation_server",
+                                                          {rclcpp::Parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_)});
+        default:
+            RCLCPP_ERROR(this->get_logger(), "Unknown room segmentation algorithm: %d", room_segmentation_algorithm_);
+            return false;
+        }
+    }
+
+    sensor_msgs::msg::Image create_image_message()
+    {
+        // import maps
+        cv::Mat map = cv::imread(image_path_.c_str(), 0);
+
+        // Make non-white pixels black and others white
+        for (int y = 0; y < map.rows; ++y)
+        {
+            for (int x = 0; x < map.cols; ++x)
+            {
+                map.at<unsigned char>(y, x) = (map.at<unsigned char>(y, x) < 250) ? 0 : 255;
+            }
+        }
+
+        // prepare image message
+        sensor_msgs::msg::Image labeling;
+        cv_bridge::CvImage cv_image;
+        cv_image.encoding = "mono8";
+        cv_image.image = map;
+        cv_image.toImageMsg(labeling);
+        return labeling;
+    }
+
+    void send_goal()
+    {
+        using namespace std::placeholders;
+
+        if (!this->client_ptr_->wait_for_action_server())
+        {
+            RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+            rclcpp::shutdown();
+        }
+
+        // send a goal to the action
+        auto goal = ipa_building_msgs::action::MapSegmentation::Goal();
+        goal.input_map = create_image_message();
+        goal.map_origin.position.x = 0;
+        goal.map_origin.position.y = 0;
+        goal.map_resolution = 0.05;
+        goal.return_format_in_meter = false;
+        goal.return_format_in_pixel = true;
+        goal.robot_radius = 0.4;
+
+        RCLCPP_INFO(this->get_logger(), "Sending goal");
+
+        auto send_goal_options = rclcpp_action::Client<MapSegmentation>::SendGoalOptions();
+        send_goal_options.goal_response_callback =
+            std::bind(&RoomSegmentationClient::goal_response_callback, this, _1);
+        send_goal_options.feedback_callback =
+            std::bind(&RoomSegmentationClient::feedback_callback, this, _1, _2);
+        send_goal_options.result_callback =
+            std::bind(&RoomSegmentationClient::result_callback, this, _1);
+        this->client_ptr_->async_send_goal(goal, send_goal_options);
+    }
+
+private:
+    rclcpp_action::Client<MapSegmentation>::SharedPtr client_ptr_;
+    std::string image_path_;
+    int room_segmentation_algorithm_;
+
+    void goal_response_callback(const GoalHandleMapSegmentation::SharedPtr &future)
+    {
+        if (!future)
+        {
+            RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+        }
+        else
+        {
+            RCLCPP_INFO(this->get_logger(), "Goal accepted by server, waiting for result");
+        }
+    }
+
+    void feedback_callback(
+        GoalHandleMapSegmentation::SharedPtr,
+        const std::shared_ptr<const MapSegmentation::Feedback> feedback)
+    {
+        RCLCPP_INFO(this->get_logger(), "Received feedback");
+    }
+
+    void result_callback(const rclcpp_action::ClientGoalHandle<ipa_building_msgs::action::MapSegmentation>::WrappedResult &result)
+    {
+        switch (result.code)
+        {
+        case rclcpp_action::ResultCode::SUCCEEDED:
+            RCLCPP_INFO(this->get_logger(), "Goal finished successfully!");
+            break;
+        case rclcpp_action::ResultCode::ABORTED:
+            RCLCPP_ERROR(this->get_logger(), "Goal was aborted");
+            return;
+        case rclcpp_action::ResultCode::CANCELED:
+            RCLCPP_ERROR(this->get_logger(), "Goal was canceled");
+            return;
+        default:
+            RCLCPP_ERROR(this->get_logger(), "Unknown result code");
+            return;
+        }
+
+        // display
+        cv_bridge::CvImagePtr cv_ptr_obj;
+        cv_ptr_obj = cv_bridge::toCvCopy(result.result->segmented_map, sensor_msgs::image_encodings::TYPE_32SC1);
+        cv::Mat segmented_map = cv_ptr_obj->image;
+        cv::Mat colour_segmented_map = segmented_map.clone();
+        colour_segmented_map.convertTo(colour_segmented_map, CV_8U);
+        cv::cvtColor(colour_segmented_map, colour_segmented_map, CV_GRAY2BGR);
+        for (size_t i = 1; i <= result.result->room_information_in_pixel.size(); ++i)
+        {
+            // choose random color for each room
+            int blue = (rand() % 250) + 1;
+            int green = (rand() % 250) + 1;
+            int red = (rand() % 250) + 1;
+            for (size_t u = 0; u < segmented_map.rows; ++u)
+            {
+                for (size_t v = 0; v < segmented_map.cols; ++v)
+                {
+                    if (segmented_map.at<int>(u, v) == i)
+                    {
+                        colour_segmented_map.at<cv::Vec3b>(u, v)[0] = blue;
+                        colour_segmented_map.at<cv::Vec3b>(u, v)[1] = green;
+                        colour_segmented_map.at<cv::Vec3b>(u, v)[2] = red;
+                    }
+                }
+            }
+        }
+        // draw the room centers into the map
+        for (size_t i = 0; i < result.result->room_information_in_pixel.size(); ++i)
+        {
+            cv::Point current_center(result.result->room_information_in_pixel[i].room_center.x, result.result->room_information_in_pixel[i].room_center.y);
+#if CV_MAJOR_VERSION <= 3
+            cv::circle(colour_segmented_map, current_center, 2, CV_RGB(0, 0, 255), CV_FILLED);
+#else
+            cv::circle(colour_segmented_map, current_center, 2, CV_RGB(0, 0, 255), cv::FILLED);
+#endif
+        }
+
+        cv::imshow("segmentation", colour_segmented_map);
+        cv::waitKey();
+    }
+};
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "room_segmentation_client");
-	ros::NodeHandle nh;
-
-	// map names
-	std::vector< std::string > map_names;
-	map_names.push_back("lab_ipa");
-	map_names.push_back("lab_c_scan");
-	map_names.push_back("Freiburg52_scan");
-	map_names.push_back("Freiburg79_scan");
-	map_names.push_back("lab_b_scan");
-	map_names.push_back("lab_intel");
-	map_names.push_back("Freiburg101_scan");
-	map_names.push_back("lab_d_scan");
-	map_names.push_back("lab_f_scan");
-	map_names.push_back("lab_a_scan");
-	map_names.push_back("NLB");
-	map_names.push_back("office_a");
-	map_names.push_back("office_b");
-	map_names.push_back("office_c");
-	map_names.push_back("office_d");
-	map_names.push_back("office_e");
-	map_names.push_back("office_f");
-	map_names.push_back("office_g");
-	map_names.push_back("office_h");
-	map_names.push_back("office_i");
-	map_names.push_back("lab_ipa_furnitures");
-	map_names.push_back("lab_c_scan_furnitures");
-	map_names.push_back("Freiburg52_scan_furnitures");
-	map_names.push_back("Freiburg79_scan_furnitures");
-	map_names.push_back("lab_b_scan_furnitures");
-	map_names.push_back("lab_intel_furnitures");
-	map_names.push_back("Freiburg101_scan_furnitures");
-	map_names.push_back("lab_d_scan_furnitures");
-	map_names.push_back("lab_f_scan_furnitures");
-	map_names.push_back("lab_a_scan_furnitures");
-	map_names.push_back("NLB_furnitures");
-	map_names.push_back("office_a_furnitures");
-	map_names.push_back("office_b_furnitures");
-	map_names.push_back("office_c_furnitures");
-	map_names.push_back("office_d_furnitures");
-	map_names.push_back("office_e_furnitures");
-	map_names.push_back("office_f_furnitures");
-	map_names.push_back("office_g_furnitures");
-	map_names.push_back("office_h_furnitures");
-	map_names.push_back("office_i_furnitures");
-
-	for (size_t image_index = 0; image_index<map_names.size(); ++image_index)
-	{
-		// import maps
-		std::string image_filename = ros::package::getPath("ipa_room_segmentation") + "/common/files/test_maps/" + map_names[image_index] + ".png";
-		cv::Mat map = cv::imread(image_filename.c_str(), 0);
-		//make non-white pixels black
-		for (int y = 0; y < map.rows; y++)
-		{
-			for (int x = 0; x < map.cols; x++)
-			{
-				//find not reachable regions and make them black
-				if (map.at<unsigned char>(y, x) < 250)
-				{
-					map.at<unsigned char>(y, x) = 0;
-				}
-				//else make it white
-				else
-				{
-					map.at<unsigned char>(y, x) = 255;
-				}
-			}
-		}
-//		cv::imshow("map", map);
-//		cv::waitKey();
-		sensor_msgs::Image labeling;
-		cv_bridge::CvImage cv_image;
-	//	cv_image.header.stamp = ros::Time::now();
-		cv_image.encoding = "mono8";
-		cv_image.image = map;
-		cv_image.toImageMsg(labeling);
-
-		// create the action client --> "name of server"
-		// true causes the client to spin its own thread
-		actionlib::SimpleActionClient<ipa_building_msgs::MapSegmentationAction> ac("room_segmentation_server", true);
-		ROS_INFO("Waiting for action server to start.");
-		// wait for the action server to start
-		ac.waitForServer(); //will wait for infinite time
-		ROS_INFO("Action server started, sending goal.");
-
-		// test dynamic reconfigure
-		DynamicReconfigureClient drc(nh, "room_segmentation_server/set_parameters", "room_segmentation_server/parameter_updates");
-		drc.setConfig("room_segmentation_algorithm", 5);
-//		drc.setConfig("display_segmented_map", true);
-		//drc.setConfig("room_area_factor_upper_limit_voronoi", 120.0);
-
-		// send a goal to the action
-		ipa_building_msgs::MapSegmentationGoal goal;
-		goal.input_map = labeling;
-		goal.map_origin.position.x = 0;
-		goal.map_origin.position.y = 0;
-		goal.map_resolution = 0.05;
-		goal.return_format_in_meter = false;
-		goal.return_format_in_pixel = true;
-		goal.robot_radius = 0.4;
-		ac.sendGoal(goal);
-
-		//wait for the action to return
-		bool finished_before_timeout = ac.waitForResult(ros::Duration());
-
-		if (finished_before_timeout)
-		{
-			ROS_INFO("Finished successfully!");
-			ipa_building_msgs::MapSegmentationResultConstPtr result_seg = ac.getResult();
-
-			// display
-			cv_bridge::CvImagePtr cv_ptr_obj;
-			cv_ptr_obj = cv_bridge::toCvCopy(result_seg->segmented_map, sensor_msgs::image_encodings::TYPE_32SC1);
-			cv::Mat segmented_map = cv_ptr_obj->image;
-			cv::Mat colour_segmented_map = segmented_map.clone();
-			colour_segmented_map.convertTo(colour_segmented_map, CV_8U);
-			cv::cvtColor(colour_segmented_map, colour_segmented_map, CV_GRAY2BGR);
-			for(size_t i = 1; i <= result_seg->room_information_in_pixel.size(); ++i)
-			{
-				//choose random color for each room
-				int blue = (rand() % 250) + 1;
-				int green = (rand() % 250) + 1;
-				int red = (rand() % 250) + 1;
-				for(size_t u = 0; u < segmented_map.rows; ++u)
-				{
-					for(size_t v = 0; v < segmented_map.cols; ++v)
-					{
-						if(segmented_map.at<int>(u,v) == i)
-						{
-							colour_segmented_map.at<cv::Vec3b>(u,v)[0] = blue;
-							colour_segmented_map.at<cv::Vec3b>(u,v)[1] = green;
-							colour_segmented_map.at<cv::Vec3b>(u,v)[2] = red;
-						}
-					}
-				}
-			}
-			//draw the room centers into the map
-			for(size_t i = 0; i < result_seg->room_information_in_pixel.size(); ++i)
-			{
-				cv::Point current_center (result_seg->room_information_in_pixel[i].room_center.x, result_seg->room_information_in_pixel[i].room_center.y);
-#if CV_MAJOR_VERSION<=3
-				cv::circle(colour_segmented_map, current_center, 2, CV_RGB(0,0,255), CV_FILLED);
-#else
-				cv::circle(colour_segmented_map, current_center, 2, CV_RGB(0,0,255), cv::FILLED);
-#endif
-			}
-
-			cv::imshow("segmentation", colour_segmented_map);
-			cv::waitKey();
-		}
-	}
-
-	//exit
-	return 0;
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<RoomSegmentationClient>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
 }

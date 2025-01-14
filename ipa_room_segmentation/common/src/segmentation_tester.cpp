@@ -5,12 +5,12 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <ros/package.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 
 int main()
 {
-	std::string package_path = ros::package::getPath("ipa_room_segmentation");
+	std::string package_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation");
 	std::string map_path = package_path + "/common/files/test_maps/";
 
 	std::vector<std::string> map_names;

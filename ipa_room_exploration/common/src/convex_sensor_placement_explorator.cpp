@@ -80,7 +80,7 @@ void convexSPPExplorator::solveOptimizationProblem(std::vector<T>& C, const cv::
 	// initialize the problem
 	CoinModel problem_builder;
 
-	ROS_INFO("Creating and solving linear program.");
+	std::cout << "Creating and solving linear program." << std::endl;
 
 	// add the optimization variables to the problem
 	int rval;
@@ -170,7 +170,7 @@ void convexSPPExplorator::solveOptimizationProblem(std::vector<T>& C, const cv::
 //		solves a TSP for the chosen poses, with each pose being the start node once. Out of the computed paths then the
 //		shortest is chosen, which is an Hamiltonian cycle through the graph. After this path has been obtained, determine
 //		the pose in the cycle that is closest to the start position, which becomes the start of the fov-path.
-void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path,
+void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path,
 		const float map_resolution, const cv::Point starting_position, const cv::Point2d map_origin,
 		const int cell_size_pixel, const double delta_theta, const std::vector<Eigen::Matrix<float, 2, 1> >& fov_corners_meter,
 		const Eigen::Matrix<float, 2, 1>& robot_to_fov_vector_meter, const double largest_robot_to_footprint_distance_meter,
@@ -224,14 +224,14 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 //	cv::waitKey();
 
 	// get candidate sensing poses
-	std::vector<geometry_msgs::Pose2D> candidate_sensing_poses;
+	std::vector<geometry_msgs::msg::Pose2D> candidate_sensing_poses;
 	double delta_angle = (plan_for_footprint == true ? 4.*PI : delta_theta);
 	for(std::vector<cv::Point>::iterator center=cell_centers.begin(); center!=cell_centers.end(); ++center)
 	{
 		for(double angle=room_rotation_angle; angle<2.0*PI+room_rotation_angle; angle+=delta_angle)
 		{
 			// create and save pose
-			geometry_msgs::Pose2D candidate_pose;
+			geometry_msgs::msg::Pose2D candidate_pose;
 			candidate_pose.x = center->x;
 			candidate_pose.y = center->y;
 			candidate_pose.theta = angle;
@@ -270,7 +270,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 
 	// check observable cells from each candidate pose
 	const double map_resolution_inverse = 1./map_resolution;
-	for(std::vector<geometry_msgs::Pose2D>::iterator pose=candidate_sensing_poses.begin(); pose!=candidate_sensing_poses.end(); ++pose)
+	for(std::vector<geometry_msgs::msg::Pose2D>::iterator pose=candidate_sensing_poses.begin(); pose!=candidate_sensing_poses.end(); ++pose)
 	{
 		// get the transformed field of view
 		// get the rotation matrix
@@ -426,7 +426,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 	//	  equal to 0, i.e. those that are not considered any further.
 	uint new_number_of_variables = 0;
 	cv::Mat V_reduced = cv::Mat(cell_centers.size(), 1, CV_8U); // initialize one column because opencv wants it this way, add other columns later
-	std::vector<geometry_msgs::Pose2D> reduced_sensing_candidates;
+	std::vector<geometry_msgs::msg::Pose2D> reduced_sensing_candidates;
 	for(std::vector<double>::iterator result=C.begin(); result!=C.end(); ++result)
 	{
 		if(*result != 0.0)
@@ -458,7 +458,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 	// ************* V. Retrieve solution and find a path trough the chosen poses. *************
 	// read out solution
 	std::vector<cv::Point> chosen_positions; // vector to determine the tsp solution, in [pixels]
-	std::vector<geometry_msgs::Pose2D> chosen_poses;	// in [px,px,rad]
+	std::vector<geometry_msgs::msg::Pose2D> chosen_poses;	// in [px,px,rad]
 	for(std::vector<int>::iterator result=C_reduced.begin(); result!=C_reduced.end(); ++result)
 	{
 		if(*result == 1)
@@ -476,7 +476,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 
 
 	// get the distance matrix
-	ROS_INFO("Constructing distance matrix");
+	std::cout << "Constructing distance matrix" << std::endl;
 	cv::Mat distance_matrix;
 	DistanceMatrix distance_matrix_computation;
 	distance_matrix_computation.constructDistanceMatrix(distance_matrix, room_map, chosen_positions, 0.25, 0.0, map_resolution, path_planner_);
@@ -510,7 +510,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 	}
 
 	// do the repetitive nearest neighbor algorithm
-	ROS_INFO("Solving TSP with repetitive nearest neighbor");
+	std::cout << "Solving TSP with repetitive nearest neighbor" << std::endl;
 	std::vector<int> best_order;
 	double min_distance = 1e9;
 	if (chosen_positions.size()>100)
@@ -564,7 +564,7 @@ void convexSPPExplorator::getExplorationPath(const cv::Mat& room_map, std::vecto
 			pose = 0;
 
 		// insert pose mapped to global coordinates
-		geometry_msgs::Pose2D current_pose;
+		geometry_msgs::msg::Pose2D current_pose;
 		if (plan_for_footprint == false)
 		{
 			// take the viewing directions as computed for fov mode, convert locations from pixels to meters

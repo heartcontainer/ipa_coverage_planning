@@ -58,8 +58,8 @@
  ****************************************************************/
 
 
-#include <ros/ros.h>
-#include <ros/package.h>
+#include <rclcpp/rclcpp.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@
 
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 #include <geometry_msgs/Polygon.h>
 #include <geometry_msgs/Point32.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -105,8 +105,8 @@
 
 #define PI 3.14159265359
 
-// Overload of << operator for geometry_msgs::Pose2D to wanted format.
-std::ostream& operator<<(std::ostream& os, const geometry_msgs::Pose2D& obj)
+// Overload of << operator for geometry_msgs::msg::Pose2D to wanted format.
+std::ostream& operator<<(std::ostream& os, const geometry_msgs::msg::Pose2D& obj)
 {
 	std::stringstream ss;
 	ss <<  "[" << obj.x << ", " << obj.y << ", " << obj.theta << "]";
@@ -179,12 +179,12 @@ struct ExplorationData
 	std::vector<cv::Mat> room_maps_;
 	std::vector<cv::Rect> bounding_boxes_;
 	float map_resolution_;	// [m/pixel]
-	geometry_msgs::Pose map_origin_;	// [m]
-	geometry_msgs::Pose2D robot_start_position_;
+	geometry_msgs::msg::Pose map_origin_;	// [m]
+	geometry_msgs::msg::Pose2D robot_start_position_;
 	double robot_radius_;	// [m], effective robot radius, taking the enlargement of the costmap into account, in [meter]
 	double coverage_radius_;	// [m], radius that is used to plan the coverage planning for the robot and not the field of view, assuming that the part that needs to cover everything (e.g. the cleaning part) can be represented by a fitting circle (e.g. smaller than the actual part to ensure coverage), in [meter]
-	std::vector<geometry_msgs::Point32> fov_points_;	// [m], the points that define the field of view of the robot, relative to the robot center (x-axis points to robot's front side, y-axis points to robot's left side, z-axis upwards), in [meter]
-	geometry_msgs::Point32 fov_origin_;		// [m], the mounting position of the camera spanning the field of view, relative to the robot center (x-axis points to robot's front side, y-axis points to robot's left side, z-axis upwards), in [meter]
+	std::vector<geometry_msgs::msg::Point32> fov_points_;	// [m], the points that define the field of view of the robot, relative to the robot center (x-axis points to robot's front side, y-axis points to robot's left side, z-axis upwards), in [meter]
+	geometry_msgs::msg::Point32 fov_origin_;		// [m], the mounting position of the camera spanning the field of view, relative to the robot center (x-axis points to robot's front side, y-axis points to robot's left side, z-axis upwards), in [meter]
 	enum PlanningMode planning_mode_;	// 1 = plans a path for coverage with the robot footprint, 2 = plans a path for coverage with the robot's field of view
 	double robot_speed_; // [m/s]
 	double robot_rotation_speed_; // [rad/s]
@@ -206,7 +206,7 @@ struct ExplorationData
 
 	// set data used in this evaluation
 	ExplorationData(const std::string map_name, const cv::Mat floor_plan, const float map_resolution, const double robot_radius,
-			const double coverage_radius, const std::vector<geometry_msgs::Point32>& fov_points, const geometry_msgs::Point32& fov_origin,
+			const double coverage_radius, const std::vector<geometry_msgs::msg::Point32>& fov_points, const geometry_msgs::msg::Point32& fov_origin,
 			const int planning_mode, const double robot_speed, const double robot_rotation_speed)
 	{
 		map_name_ = map_name;
@@ -272,7 +272,7 @@ public:
 
 	ExplorationEvaluation(ros::NodeHandle& nh, const std::string& test_map_path, const std::vector<std::string>& map_names, const float map_resolution,
 			const std::string& data_storage_path, const double robot_radius, const double coverage_radius,
-			const std::vector<geometry_msgs::Point32>& fov_points, const geometry_msgs::Point32& fov_origin, const int planning_mode,
+			const std::vector<geometry_msgs::msg::Point32>& fov_points, const geometry_msgs::msg::Point32& fov_origin, const int planning_mode,
 			const std::vector<int>& exploration_algorithms, const double robot_speed, const double robot_rotation_speed, bool do_path_planning=true, bool do_evaluation=true)
 	: node_handle_(nh)
 	{
@@ -469,7 +469,7 @@ public:
 
 				// retrieve the solution and save the found results
 				double calculation_time = (t1.tv_sec - t0.tv_sec) + (double) (t1.tv_nsec - t0.tv_nsec) * 1e-9;
-				std::vector<geometry_msgs::Pose2D> coverage_path = result_expl->coverage_path;
+				std::vector<geometry_msgs::msg::Pose2D> coverage_path = result_expl->coverage_path;
 				// transform path to map coordinates
 				std::cout << "length of path: " << coverage_path.size() << std::endl;
 				if(coverage_path.size()==0)
@@ -659,7 +659,7 @@ public:
 
 
 		// 1. get the location of the results and open this file, read out the given paths and computation times for all rooms
-		std::vector<std::vector<geometry_msgs::Pose2D> > paths;		// in [pixels]
+		std::vector<std::vector<geometry_msgs::msg::Pose2D> > paths;		// in [pixels]
 		std::vector<double> calculation_times;
 		readResultsFile(data, config, data_storage_path, paths, calculation_times);
 
@@ -673,7 +673,7 @@ public:
 		// 3. path map, path length, turns, crossings statistics
 		//    overall, average path length and variance of it for the calculated paths and get the numbers of turns
 		std::vector<double> pathlengths_for_map;	// in [m], stores the individual path lengths for each trajectory in each room
-		std::vector<std::vector<geometry_msgs::Pose2D> > interpolated_paths; // in [m], variable that stores the rough path points of paths and the cell-fine trajectories between them
+		std::vector<std::vector<geometry_msgs::msg::Pose2D> > interpolated_paths; // in [m], variable that stores the rough path points of paths and the cell-fine trajectories between them
 		int nonzero_paths = 0;
 		std::vector<double> rotation_values;
 		std::vector<int> number_of_rotations, number_of_crossings;
@@ -827,7 +827,7 @@ public:
 	}
 
 	bool readResultsFile(const ExplorationData& data, const ExplorationConfig& config, const std::string data_storage_path,
-			std::vector<std::vector<geometry_msgs::Pose2D> >& paths, std::vector<double>& calculation_times)
+			std::vector<std::vector<geometry_msgs::msg::Pose2D> >& paths, std::vector<double>& calculation_times)
 	{
 		// 1. get the location of the results and open this file
 		const std::string configuration_folder_name = config.generateConfigurationFolderString() + "/";
@@ -836,7 +836,7 @@ public:
 		std::ifstream reading_file(log_filename.c_str(), std::ios::in);
 
 		// 2. if the file could be opened, read out the given paths for all rooms
-		std::vector<geometry_msgs::Pose2D> current_path;
+		std::vector<geometry_msgs::msg::Pose2D> current_path;
 		if (reading_file.is_open()==true)
 		{
 			std::string line;
@@ -870,7 +870,7 @@ public:
 //								calculation_time = 1800;
 
 						// save a invalid pose, to show that this room has no coverage path
-						geometry_msgs::Pose2D false_pose;
+						geometry_msgs::msg::Pose2D false_pose;
 						false_pose.x = -1;
 						false_pose.y = -1;
 						current_path.push_back(false_pose);
@@ -917,7 +917,7 @@ public:
 					// save the found pose
 					if(x>0 && y>0)
 					{
-						geometry_msgs::Pose2D current_pose;
+						geometry_msgs::msg::Pose2D current_pose;
 						current_pose.x = x;
 						current_pose.y = y;
 						current_pose.theta = theta;
@@ -1003,7 +1003,7 @@ public:
 
 	// path map, path length, turns, crossings statistics
 	void statisticsPathLengthCrossingsTurns(const ExplorationData& data, const cv::Mat& map, cv::Mat& path_map, const cv::Point2d& fov_circle_center_point_in_px,
-			const std::vector<std::vector<geometry_msgs::Pose2D> >& paths, std::vector<std::vector<geometry_msgs::Pose2D> >& interpolated_paths,
+			const std::vector<std::vector<geometry_msgs::msg::Pose2D> >& paths, std::vector<std::vector<geometry_msgs::msg::Pose2D> >& interpolated_paths,
 			std::vector<double>& pathlengths_for_map, int& nonzero_paths, std::vector<int>& number_of_crossings,
 			std::vector<double>& rotation_values, std::vector<int>& number_of_rotations)
 	{
@@ -1034,7 +1034,7 @@ public:
 			int current_number_of_rotations = 0, current_number_of_crossings = 0;
 
 			// initialize path
-			geometry_msgs::Pose2D current_pose_px;	// in [pixels]
+			geometry_msgs::msg::Pose2D current_pose_px;	// in [pixels]
 			size_t initial_pose_index = 0;
 			bool found_initial_pose = false;
 			for (; initial_pose_index<paths[room].size(); ++initial_pose_index)		// try different starting poses until one works
@@ -1057,15 +1057,15 @@ public:
 				current_pose_px = paths[room][0];
 				size_t initial_pose_index = 0;
 			}
-			geometry_msgs::Pose2D initial_pose_m;	// in [m]
+			geometry_msgs::msg::Pose2D initial_pose_m;	// in [m]
 			initial_pose_m.x = (current_pose_px.x*data.map_resolution_)+data.map_origin_.position.x;
 			initial_pose_m.y = (current_pose_px.y*data.map_resolution_)+data.map_origin_.position.y;
 			initial_pose_m.theta = current_pose_px.theta;
-			std::vector<geometry_msgs::Pose2D> current_pose_path_meter;	// in [m,m,rad]
+			std::vector<geometry_msgs::msg::Pose2D> current_pose_path_meter;	// in [m,m,rad]
 			current_pose_path_meter.push_back(initial_pose_m);
 
 			// loop through trajectory points
-			for(std::vector<geometry_msgs::Pose2D>::const_iterator pose_px=paths[room].begin()+initial_pose_index+1; pose_px!=paths[room].end(); ++pose_px)
+			for(std::vector<geometry_msgs::msg::Pose2D>::const_iterator pose_px=paths[room].begin()+initial_pose_index+1; pose_px!=paths[room].end(); ++pose_px)
 			{
 				// if a false pose has been saved, skip it
 				if(current_pose_px.x==-1 && current_pose_px.y==-1)
@@ -1075,7 +1075,7 @@ public:
 				}
 
 				// find an accessible next pose
-				geometry_msgs::Pose2D next_pose_px = *pose_px;
+				geometry_msgs::msg::Pose2D next_pose_px = *pose_px;
 				bool found_next = findAccessiblePose(inflated_map, current_pose_px, next_pose_px, data, fov_circle_center_point_in_px);
 				if(found_next==false)
 				{
@@ -1106,7 +1106,7 @@ public:
 					current_interpolated_path.push_back(cv::Point(next_pose_px.x, next_pose_px.y));
 				}
 
-				// transform the cv::Point path to geometry_msgs::Pose2D --> last point has, first point was already gone a defined angle
+				// transform the cv::Point path to geometry_msgs::msg::Pose2D --> last point has, first point was already gone a defined angle
 				// also create output map to show path --> and check if one point has already been visited
 				bool has_crossing = false;
 				//cv::circle(path_map, cv::Point(next_pose_px.x, next_pose_px.y), 1, cv::Scalar(196), CV_FILLED);
@@ -1119,7 +1119,7 @@ public:
 						path_map.at<uchar>(*point)=127;
 
 					// transform to world coordinates
-					geometry_msgs::Pose2D current_pose;
+					geometry_msgs::msg::Pose2D current_pose;
 					current_pose.x = (point->x*data.map_resolution_)+data.map_origin_.position.x;
 					current_pose.y = (point->y*data.map_resolution_)+data.map_origin_.position.y;
 					current_pose.theta = 0;		// the angles are computed afterwards with some smoothing interpolation
@@ -1139,8 +1139,8 @@ public:
 			for (size_t i=0; i<current_pose_path_meter.size(); ++i)
 			{
 				// compute angle as direction between point 2 steps previous and point 2 steps ahead in the current path
-				const geometry_msgs::Pose2D& pose_1 = current_pose_path_meter[std::max(int(i)-offset,0)];
-				const geometry_msgs::Pose2D& pose_2 = current_pose_path_meter[std::min(i+offset,current_pose_path_meter.size()-1)];
+				const geometry_msgs::msg::Pose2D& pose_1 = current_pose_path_meter[std::max(int(i)-offset,0)];
+				const geometry_msgs::msg::Pose2D& pose_2 = current_pose_path_meter[std::min(i+offset,current_pose_path_meter.size()-1)];
 				current_pose_path_meter[i].theta = std::atan2(pose_2.y-pose_1.y, pose_2.x-pose_1.x);
 
 				// determine angle differences for the statistics
@@ -1171,7 +1171,7 @@ public:
 	}
 
 	void statisticsCoverageArea(const ExplorationData& data, const cv::Mat& map, const cv::Mat& path_map, cv::Mat& map_coverage, cv::Mat& map_path_coverage,
-			const std::vector<std::vector<geometry_msgs::Pose2D> >& paths, const std::vector<std::vector<geometry_msgs::Pose2D> >& interpolated_paths,
+			const std::vector<std::vector<geometry_msgs::msg::Pose2D> >& paths, const std::vector<std::vector<geometry_msgs::msg::Pose2D> >& interpolated_paths,
 			std::vector<double>& room_areas, std::vector<double>& area_covered_percentages, std::vector<double>& numbers_of_coverages)
 	{
 		map_coverage = map.clone();
@@ -1298,7 +1298,7 @@ public:
 	}
 
 	void statisticsParallelism(const ExplorationData& data, const cv::Mat& map, const cv::Mat& path_map,
-			const std::vector<std::vector<geometry_msgs::Pose2D> >& paths, const std::vector<std::vector<geometry_msgs::Pose2D> >& interpolated_paths,
+			const std::vector<std::vector<geometry_msgs::msg::Pose2D> >& paths, const std::vector<std::vector<geometry_msgs::msg::Pose2D> >& interpolated_paths,
 			const double grid_spacing_in_pixel,
 			std::vector<double>& wall_angle_score_means, std::vector<double>& trajectory_angle_score_means, std::vector<double>& revisit_time_means)
 	{
@@ -1313,7 +1313,7 @@ public:
 
 			std::vector<double> current_wall_angle_scores, current_trajectory_angle_scores;		// values in [0,1], high values are good
 			std::vector<double> current_revisit_times;		// values in [0,1], low values are good
-			for (std::vector<geometry_msgs::Pose2D>::const_iterator pose=paths[room].begin(); pose!=paths[room].end()-1; ++pose)
+			for (std::vector<geometry_msgs::msg::Pose2D>::const_iterator pose=paths[room].begin(); pose!=paths[room].end()-1; ++pose)
 			{
 				double dx = (pose+1)->x - pose->x;
 				double dy = (pose+1)->y - pose->y;
@@ -1407,7 +1407,7 @@ public:
 					cv::Point2f trajectory_point_m((trajectory_pixel.x*data.map_resolution_)+data.map_origin_.position.x, (trajectory_pixel.y*data.map_resolution_)+data.map_origin_.position.y); // transform in world coordinates
 					int pose_index = pose-paths[room].begin();
 					int neighbor_index = -1;
-					for (std::vector<geometry_msgs::Pose2D>::const_iterator neighbor=interpolated_paths[room].begin(); neighbor!=interpolated_paths[room].end(); ++neighbor)
+					for (std::vector<geometry_msgs::msg::Pose2D>::const_iterator neighbor=interpolated_paths[room].begin(); neighbor!=interpolated_paths[room].end(); ++neighbor)
 						if (cv::norm(trajectory_point_m-cv::Point2f(neighbor->x,neighbor->y)) < 0.5*data.map_resolution_)
 							neighbor_index = neighbor-interpolated_paths[room].begin();
 					if (neighbor_index == -1)
@@ -1432,7 +1432,7 @@ public:
 		}
 	}
 
-	bool findAccessiblePose(const cv::Mat& inflated_map, const geometry_msgs::Pose2D& current_pose_px, geometry_msgs::Pose2D& target_pose_px, const ExplorationData& data,
+	bool findAccessiblePose(const cv::Mat& inflated_map, const geometry_msgs::msg::Pose2D& current_pose_px, geometry_msgs::msg::Pose2D& target_pose_px, const ExplorationData& data,
 			const cv::Point2d fov_circle_center_point_in_px, const bool approach_path_accessibility_check=true)
 	{
 		MapAccessibilityAnalysis map_accessibility_analysis;
@@ -1645,7 +1645,7 @@ int main(int argc, char **argv)
 
 	// coordinate system definition: x points in forward direction of robot and camera, y points to the left side  of the robot and z points upwards. x and y span the ground plane.
 	// measures in [m]
-	std::vector<geometry_msgs::Point32> fov_points(4);
+	std::vector<geometry_msgs::msg::Point32> fov_points(4);
 //	fov_points[0].x = 0.04035;		// this field of view represents the off-center iMop floor wiping device
 //	fov_points[0].y = -0.136;
 //	fov_points[1].x = 0.04035;
@@ -1673,7 +1673,7 @@ int main(int argc, char **argv)
 	fov_points[3].x = 0.3;
 	fov_points[3].y = 0.3;
 	int planning_mode = 2;	// footprint planning
-	geometry_msgs::Point32 fov_origin;
+	geometry_msgs::msg::Point32 fov_origin;
 	fov_origin.x = 0.;
 	fov_origin.y = 0.;
 

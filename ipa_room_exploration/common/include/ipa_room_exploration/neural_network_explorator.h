@@ -8,7 +8,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include <geometry_msgs/Pose2D.h>
+#include <geometry_msgs/msg/pose2_d.hpp>
 #include <geometry_msgs/Polygon.h>
 #include <Eigen/Dense>
 
@@ -80,9 +80,9 @@
 
 #define PI 3.14159265359
 
-// Definition if the operator == for geometry_msgs::Pose2D for checking how often a specific pose is in the so far calculated
+// Definition if the operator == for geometry_msgs::msg::Pose2D for checking how often a specific pose is in the so far calculated
 // path.
-inline bool operator==(const geometry_msgs::Pose2D& A, const geometry_msgs::Pose2D& B)
+inline bool operator==(const geometry_msgs::msg::Pose2D& A, const geometry_msgs::msg::Pose2D& B)
 {
 	if(A.x == B.x && A.y == B.y)
 		return true;
@@ -142,7 +142,7 @@ public:
 	// Function that creates an exploration path for a given room. The room has to be drawn in a cv::Mat (filled with Bit-uchar),
 	// with free space drawn white (255) and obstacles as black (0). It returns a series of 2D poses that show to which positions
 	// the robot should drive at.
-	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::Pose2D>& path, const float map_resolution,
+	void getExplorationPath(const cv::Mat& room_map, std::vector<geometry_msgs::msg::Pose2D>& path, const float map_resolution,
 					 const cv::Point starting_position, const cv::Point2d map_origin, const double grid_spacing_in_pixel,
 					 const bool plan_for_footprint, const Eigen::Matrix<float, 2, 1> robot_to_fov_vector, bool show_path_evolution=false);
 };

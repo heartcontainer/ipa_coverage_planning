@@ -156,7 +156,7 @@ double RoomRotator::computeRoomMainDirection(const cv::Mat& room_map, const doub
 	return direction_histogram.getMaxBinPreciseVal();
 }
 
-void RoomRotator::transformPathBackToOriginalRotation(const std::vector<cv::Point2f>& fov_middlepoint_path, std::vector<geometry_msgs::Pose2D>& path_fov_poses, const cv::Mat& R)
+void RoomRotator::transformPathBackToOriginalRotation(const std::vector<cv::Point2f>& fov_middlepoint_path, std::vector<geometry_msgs::msg::Pose2D>& path_fov_poses, const cv::Mat& R)
 {
 	path_fov_poses.clear();
 
@@ -170,7 +170,7 @@ void RoomRotator::transformPathBackToOriginalRotation(const std::vector<cv::Poin
 	transformPointPathToPosePath(fov_middlepoint_path_transformed, path_fov_poses);
 }
 
-void RoomRotator::transformPointPathToPosePath(const std::vector<cv::Point2f>& point_path, std::vector<geometry_msgs::Pose2D>& pose_path)
+void RoomRotator::transformPointPathToPosePath(const std::vector<cv::Point2f>& point_path, std::vector<geometry_msgs::msg::Pose2D>& pose_path)
 {
 	// create poses with an angle
 	for(size_t point_index = 0; point_index < point_path.size(); ++point_index)
@@ -179,7 +179,7 @@ void RoomRotator::transformPointPathToPosePath(const std::vector<cv::Point2f>& p
 		const cv::Point2f& current_point = point_path[point_index];
 
 		// add the next navigation goal to the path
-		geometry_msgs::Pose2D current_pose;
+		geometry_msgs::msg::Pose2D current_pose;
 		current_pose.x = current_point.x;
 		current_pose.y = current_point.y;
 		current_pose.theta = 0.;
@@ -203,7 +203,7 @@ void RoomRotator::transformPointPathToPosePath(const std::vector<cv::Point2f>& p
 	}
 }
 
-void RoomRotator::transformPointPathToPosePath(std::vector<geometry_msgs::Pose2D>& pose_path)
+void RoomRotator::transformPointPathToPosePath(std::vector<geometry_msgs::msg::Pose2D>& pose_path)
 {
 	// create point vector
 	std::vector<cv::Point2f> point_path;
