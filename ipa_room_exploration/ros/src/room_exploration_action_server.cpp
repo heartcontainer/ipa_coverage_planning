@@ -60,6 +60,8 @@
 #include <ipa_room_exploration/room_exploration_action_server.h>
 #include "dynamic_reconfigure.h"
 
+#define DEBUG_PERFORMANCE 1
+
 // constructor
 RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options) : rclcpp::Node("room_exploration_server", options)
 {
@@ -317,6 +319,10 @@ void RoomExplorationServer::handle_accepted(const std::shared_ptr<GoalHandleRoom
 
 void RoomExplorationServer::execute(const std::shared_ptr<GoalHandleRoomExploration> goal_handle)
 {
+#if DEBUG_PERFORMANCE
+	auto start_time = this->now();
+#endif
+
 	RCLCPP_INFO(this->get_logger(), "*****Room Exploration action server*****");
 
 	const auto goal = goal_handle->get_goal();
@@ -638,9 +644,11 @@ void RoomExplorationServer::execute(const std::shared_ptr<GoalHandleRoomExplorat
 		RCLCPP_INFO(this->get_logger(), "Explored room.");
 	}
 
-	// room_exploration_server_.setSucceeded(action_result);
 	goal_handle->succeed(action_result);
-
+#if DEBUG_PERFORMANCE
+	auto end_time = this->now();
+	RCLCPP_INFO(this->get_logger(), "Execution time: %.3f seconds", (end_time - start_time).seconds());
+#endif
 	return;
 }
 
@@ -685,7 +693,6 @@ bool RoomExplorationServer::removeUnconnectedRoomParts(cv::Mat &room_map)
 		for (int u = 0; u < room_map.cols; ++u)
 			if (room_map_int.at<int32_t>(v, u) != label_of_biggest_room)
 				room_map.at<uchar>(v, u) = 0;
-
 	return true;
 }
 

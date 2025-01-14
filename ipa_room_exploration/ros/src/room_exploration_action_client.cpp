@@ -30,13 +30,9 @@ public:
 
     RoomExplorationClient() : Node("room_exploration_client")
     {
-        // Declare and get parameters
-        use_test_maps_ = this->declare_parameter("use_test_maps", true);
-        resolution_ = this->declare_parameter("resolution", 0.05);
-        origin_ = this->declare_parameter<std::vector<double>>("origin", {0.0, 0.0, 0.0});
-        robot_radius_ = this->declare_parameter("robot_radius", 0.3);
-        coverage_radius_ = this->declare_parameter("coverage_radius", 1.0);
-        start_pos_ = this->declare_parameter<std::vector<double>>("starting_position", {0.0, 0.0, 0.0});
+        this->declare_parameter<int>("room_exploration_algorithm", 8);
+
+        this->get_parameter("room_exploration_algorithm", room_exploration_algorithm_);
 
         if (start_pos_.size() != 3)
         {
@@ -72,7 +68,7 @@ public:
         }
         RCLCPP_INFO(this->get_logger(), "Map size: %dx%d", map_.rows, map_.cols);
 
-        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server", {rclcpp::Parameter("room_exploration_algorithm", 8), rclcpp::Parameter("execute_path", false)}))
+        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server", {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_), rclcpp::Parameter("execute_path", false)}))
         {
             rclcpp::shutdown();
             return;
@@ -170,7 +166,7 @@ public:
                         const cv::Point point2((result.result->coverage_path[point - 1].x - origin_[0]) * inverse_map_resolution, (result.result->coverage_path[point - 1].y - origin_[1]) * inverse_map_resolution);
                         cv::line(path_map, point1, point2, cv::Scalar(128), 1);
                     }
-                    std::cout << "coverage_path[" << point << "]: x=" << result.result->coverage_path[point].x << ", y=" << result.result->coverage_path[point].y << ", theta=" << result.result->coverage_path[point].theta << std::endl;
+                    // std::cout << "coverage_path[" << point << "]: x=" << result.result->coverage_path[point].x << ", y=" << result.result->coverage_path[point].y << ", theta=" << result.result->coverage_path[point].theta << std::endl;
                 }
                 cv::imshow("path", path_map);
                 cv::waitKey();
@@ -187,12 +183,13 @@ public:
 
 private:
     rclcpp_action::Client<RoomExplorationAction>::SharedPtr action_client_;
-    bool use_test_maps_;
-    double resolution_;
-    std::vector<double> origin_;
-    double robot_radius_;
-    double coverage_radius_;
-    std::vector<double> start_pos_;
+    int room_exploration_algorithm_;
+    bool use_test_maps_ = true;
+    double resolution_ = 0.05;
+    std::vector<double> origin_ = {0.0, 0.0, 0.0};
+    double robot_radius_ = 0.3;
+    double coverage_radius_ = 1.0;
+    std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
     cv::Mat map_;
 };
 
