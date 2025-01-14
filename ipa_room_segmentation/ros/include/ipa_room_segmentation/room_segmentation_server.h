@@ -167,7 +167,7 @@ protected:
 
 public:
 	// initialize the action-server
-	explicit RoomSegmentationServer(const rclcpp::NodeOptions &options);
+	explicit RoomSegmentationServer();
 
 	// Default destructor for the class
 	~RoomSegmentationServer(void)

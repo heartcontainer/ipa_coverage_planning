@@ -63,10 +63,8 @@
 #define DEBUG_PERFORMANCE 1
 
 // constructor
-RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options) : rclcpp::Node("room_exploration_server", options)
+RoomExplorationServer::RoomExplorationServer() : rclcpp::Node("room_exploration_server", rclcpp::NodeOptions())
 {
-	// room_exploration_server_(node_handle_, name_of_the_action, boost::bind(&RoomExplorationServer::exploreRoom, this, _1), false)
-
 	// Action server setup
 	this->action_server_ = rclcpp_action::create_server<RoomExploration>(
 		this,
@@ -138,15 +136,12 @@ RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options)
 	std::cout << "room_exploration/revisit_areas = " << revisit_areas_ << std::endl;
 	this->get_parameter("left_sections_min_area", left_sections_min_area_);
 	std::cout << "room_exploration/left_sections_min_area_ = " << left_sections_min_area_ << std::endl;
-	// global_costmap_topic_ = "/move_base/global_costmap/costmap";
 	this->get_parameter<std::string>("global_costmap_topic", global_costmap_topic_);
 	std::cout << "room_exploration/global_costmap_topic = " << global_costmap_topic_ << std::endl;
 	this->get_parameter<std::string>("coverage_check_service_name", coverage_check_service_name_);
 	std::cout << "room_exploration/coverage_check_service_name = " << coverage_check_service_name_ << std::endl;
-	// map_frame_ = "map";
 	this->get_parameter<std::string>("map_frame", map_frame_);
 	std::cout << "room_exploration/map_frame = " << map_frame_ << std::endl;
-	// camera_frame_ = "base_link";
 	this->get_parameter<std::string>("camera_frame", camera_frame_);
 	std::cout << "room_exploration/camera_frame = " << camera_frame_ << std::endl;
 
@@ -249,9 +244,6 @@ RoomExplorationServer::RoomExplorationServer(const rclcpp::NodeOptions &options)
 		{
 			this->global_costmap_ = *msg;
 		});
-
-	// Start action server
-	//  room_exploration_server_.start();
 
 	RCLCPP_INFO(this->get_logger(), "Action server for room exploration has been initialized......");
 }
@@ -373,8 +365,6 @@ void RoomExplorationServer::execute(const std::shared_ptr<GoalHandleRoomExplorat
 	if (room_not_empty == false)
 	{
 		std::cout << "RoomExplorationServer::exploreRoom: Warning: the requested room is too small for generating exploration trajectories." << std::endl;
-		// ipa_building_msgs::RoomExplorationResult action_result;
-		// room_exploration_server_.setAborted(action_result);
 		goal_handle->abort(action_result);
 		return;
 	}
@@ -414,9 +404,9 @@ void RoomExplorationServer::execute(const std::shared_ptr<GoalHandleRoomExplorat
 	{
 		// plan path
 		if (planning_mode_ == PLAN_FOR_FOV)
-			grid_point_planner.getExplorationPath(room_map, exploration_path, map_resolution, starting_position, map_origin, std::floor(grid_spacing_in_pixel), false, fitting_circle_center_point_in_meter, tsp_solver_, tsp_solver_timeout_);
+			grid_point_planner_.getExplorationPath(room_map, exploration_path, map_resolution, starting_position, map_origin, std::floor(grid_spacing_in_pixel), false, fitting_circle_center_point_in_meter, tsp_solver_, tsp_solver_timeout_);
 		else
-			grid_point_planner.getExplorationPath(room_map, exploration_path, map_resolution, starting_position, map_origin, std::floor(grid_spacing_in_pixel), true, zero_vector, tsp_solver_, tsp_solver_timeout_);
+			grid_point_planner_.getExplorationPath(room_map, exploration_path, map_resolution, starting_position, map_origin, std::floor(grid_spacing_in_pixel), true, zero_vector, tsp_solver_, tsp_solver_timeout_);
 	}
 	else if (room_exploration_algorithm_ == 2) // use boustrophedon explorator
 	{
@@ -604,7 +594,6 @@ void RoomExplorationServer::execute(const std::shared_ptr<GoalHandleRoomExplorat
 	// check if the size of the exploration path is larger then zero
 	if (exploration_path.size() == 0)
 	{
-		// room_exploration_server_.setAborted(action_result);
 		goal_handle->abort(action_result);
 		return;
 	}
@@ -767,16 +756,7 @@ void RoomExplorationServer::navigateExplorationPath(const std::vector<geometry_m
 
 	std::cout << "published all navigation goals, starting to check seen area" << std::endl;
 
-	// 2. get the global costmap, that has initially not known objects in to check what regions have been seen
-	// nav_msgs::msg::OccupancyGrid global_costmap;
-	// global_costmap = *(rclcpp::wait_for_message<nav_msgs::msg::OccupancyGrid>(global_costmap_topic_, this->get_node_parameters_interface()));
-	// RCLCPP_INFO(this->get_logger(), "Found global gridmap.");
-	// map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-	// 	global_costmap_topic_,
-	// 	[this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
-	// 		global_costmap = *msg;
-	// 	},
-	// 	10);
+	// 2. get the global costmap
 
 	std::vector<signed char> pixel_values;
 	pixel_values = global_costmap_.data;
@@ -820,7 +800,6 @@ void RoomExplorationServer::navigateExplorationPath(const std::vector<geometry_m
 		else
 		{
 			RCLCPP_WARN(this->get_logger(), "Coverage check failed, is the coverage_check_server running?");
-			// room_exploration_server_.setAborted();
 			return;
 		}
 
@@ -905,9 +884,6 @@ void RoomExplorationServer::navigateExplorationPath(const std::vector<geometry_m
 		if (areas_to_revisit.size() == 0)
 		{
 			RCLCPP_INFO(this->get_logger(), "Explored room.");
-
-			// room_exploration_server_.setSucceeded();
-
 			return;
 		}
 
@@ -1083,6 +1059,7 @@ bool RoomExplorationServer::publishNavigationGoal(const geometry_msgs::msg::Pose
 	auto send_goal_options = rclcpp_action::Client<NavigateToPose>::SendGoalOptions();
 	send_goal_options.result_callback = [this](const rclcpp_action::ClientGoalHandle<NavigateToPose>::WrappedResult &result)
 	{
+		// TODO: check if the goal was reached or not
 		switch (result.code)
 		{
 		case rclcpp_action::ResultCode::SUCCEEDED:
@@ -1206,7 +1183,7 @@ int main(int argc, char **argv)
 {
 	rclcpp::init(argc, argv);
 
-	auto node = std::make_shared<RoomExplorationServer>(rclcpp::NodeOptions());
+	auto node = std::make_shared<RoomExplorationServer>();
 	rclcpp::spin(node);
 
 	rclcpp::shutdown();

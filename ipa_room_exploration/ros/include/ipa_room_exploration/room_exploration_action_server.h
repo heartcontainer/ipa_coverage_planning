@@ -59,7 +59,6 @@
 
 #pragma once
 
-
 // Ros specific
 #include <rclcpp/rclcpp.hpp>
 // #include <actionlib/server/simple_action_server.h>
@@ -121,89 +120,86 @@ using GoalHandleNavigateToPose = rclcpp_action::ClientGoalHandle<NavigateToPose>
 class RoomExplorationServer : public rclcpp::Node
 {
 protected:
-
 	int planning_mode_; // 1 = plans a path for coverage with the robot footprint, 2 = plans a path for coverage with the robot's field of view
 
 	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_; // a publisher sending the path as a nav_msgs::Path before executing
 
-	GridPointExplorator grid_point_planner; // object that uses the grid point method to plan a path trough a room
-	BoustrophedonExplorer boustrophedon_explorer_; // object that uses the boustrophedon exploration method to plan a path trough the room
-	NeuralNetworkExplorator neural_network_explorator_; // object that uses the neural network method to create an exploration path
-	convexSPPExplorator convex_SPP_explorator_; // object that uses the convex spp exploration methd to create an exploration path
-	FlowNetworkExplorator flow_network_explorator_; // object that uses the flow network exploration method to create an exploration path
-	EnergyFunctionalExplorator energy_functional_explorator_; // object that uses the energy functional exploration method to create an exploration path
+	GridPointExplorator grid_point_planner_;					  // object that uses the grid point method to plan a path trough a room
+	BoustrophedonExplorer boustrophedon_explorer_;				  // object that uses the boustrophedon exploration method to plan a path trough the room
+	NeuralNetworkExplorator neural_network_explorator_;			  // object that uses the neural network method to create an exploration path
+	convexSPPExplorator convex_SPP_explorator_;					  // object that uses the convex spp exploration methd to create an exploration path
+	FlowNetworkExplorator flow_network_explorator_;				  // object that uses the flow network exploration method to create an exploration path
+	EnergyFunctionalExplorator energy_functional_explorator_;	  // object that uses the energy functional exploration method to create an exploration path
 	BoustrophedonVariantExplorer boustrophedon_variant_explorer_; // object that uses the boustrophedon variant exploration method to plan a path trough the room
 
 	// parameters
-	int room_exploration_algorithm_;	// variable to specify which algorithm is going to be used to plan a path
-										// 1: grid point explorator
-										// 2: boustrophedon explorator
-										// 3: neural network explorator
-										// 4: convexSPP explorator
-										// 5: flowNetwork explorator
-										// 6: energyFunctional explorator
-										// 7: Voronoi explorator
-										// 8: boustrophedon variant explorator
-	bool display_trajectory_;		// display final trajectory plan step by step
+	int room_exploration_algorithm_; // variable to specify which algorithm is going to be used to plan a path
+									 // 1: grid point explorator
+									 // 2: boustrophedon explorator
+									 // 3: neural network explorator
+									 // 4: convexSPP explorator
+									 // 5: flowNetwork explorator
+									 // 6: energyFunctional explorator
+									 // 7: Voronoi explorator
+									 // 8: boustrophedon variant explorator
+	bool display_trajectory_;		 // display final trajectory plan step by step
 
 	// parameters on map correction
-	int map_correction_closing_neighborhood_size_;	// Applies a closing operation to neglect inaccessible areas and map errors/artifacts if the
-													// map_correction_closing_neighborhood_size parameter is larger than 0.
-													// The parameter then specifies the iterations (or neighborhood size) of that closing operation.
+	int map_correction_closing_neighborhood_size_; // Applies a closing operation to neglect inaccessible areas and map errors/artifacts if the
+												   // map_correction_closing_neighborhood_size parameter is larger than 0.
+												   // The parameter then specifies the iterations (or neighborhood size) of that closing operation.
 
 	// parameters specific to the navigation of the robot along the computed coverage trajectory
-	bool return_path_;				// boolean used to determine if the server should return the computed coverage path in the response message
-	bool execute_path_;				// boolean used to determine whether the server should navigate the robot along the computed coverage path
-	double goal_eps_;				// distance between the published navigation goal and the robot to publish the next
-									// navigation goal in the path
-	bool use_dyn_goal_eps_;		// using a dynamic goal distance criterion: the larger the path's curvature, the more accurate the navigation
-	bool interrupt_navigation_publishing_;	// variable that interrupts the publishing of navigation goals as long as needed, e.g. when during the execution
-											// of the coverage path a trash bin is found and one wants to empty it directly and resume the path later.
-	bool revisit_areas_;			// variable that turns functionality on/off to revisit areas that haven't been seen during the
-									// execution of the coverage path, due to uncertainties or dynamic obstacles
-	double left_sections_min_area_; // variable to determine the minimal area that not seen sections must have before they
-									// are revisited after one run through the room
-	std::string global_costmap_topic_;	// name of the global costmap topic
-	std::string coverage_check_service_name_;	// name of the service to call for a coverage check of the driven trajectory
-	std::string map_frame_;			// string that carries the name of the map frame, used for tracking of the robot
-	std::string camera_frame_;				// string that carries the name of the camera frame, that is in the same kinematic chain as the map_frame and shows the camera pose
+	bool return_path_;						  // boolean used to determine if the server should return the computed coverage path in the response message
+	bool execute_path_;						  // boolean used to determine whether the server should navigate the robot along the computed coverage path
+	double goal_eps_;						  // distance between the published navigation goal and the robot to publish the next
+											  // navigation goal in the path
+	bool use_dyn_goal_eps_;					  // using a dynamic goal distance criterion: the larger the path's curvature, the more accurate the navigation
+	bool interrupt_navigation_publishing_;	  // variable that interrupts the publishing of navigation goals as long as needed, e.g. when during the execution
+											  // of the coverage path a trash bin is found and one wants to empty it directly and resume the path later.
+	bool revisit_areas_;					  // variable that turns functionality on/off to revisit areas that haven't been seen during the
+											  // execution of the coverage path, due to uncertainties or dynamic obstacles
+	double left_sections_min_area_;			  // variable to determine the minimal area that not seen sections must have before they
+											  // are revisited after one run through the room
+	std::string global_costmap_topic_;		  // name of the global costmap topic
+	std::string coverage_check_service_name_; // name of the service to call for a coverage check of the driven trajectory
+	std::string map_frame_;					  // string that carries the name of the map frame, used for tracking of the robot
+	std::string camera_frame_;				  // string that carries the name of the camera frame, that is in the same kinematic chain as the map_frame and shows the camera pose
 
 	// parameters specific to the grid point explorator
-	int tsp_solver_;	// indicates which TSP solver should be used
-						//   1 = Nearest Neighbor
-						//   2 = Genetic solver
-						//   3 = Concorde solver
-	int64_t tsp_solver_timeout_;	// a sophisticated solver like Concorde or Genetic can be interrupted if it does not find a solution within this time, in [s], and then falls back to the nearest neighbor solver
+	int tsp_solver_;			 // indicates which TSP solver should be used
+								 //   1 = Nearest Neighbor
+								 //   2 = Genetic solver
+								 //   3 = Concorde solver
+	int64_t tsp_solver_timeout_; // a sophisticated solver like Concorde or Genetic can be interrupted if it does not find a solution within this time, in [s], and then falls back to the nearest neighbor solver
 
 	// parameters specific for the boustrophedon explorator
-	double min_cell_area_;			// minimal area a cell can have, when using the boustrophedon explorator
-	double path_eps_;		// the distance between points when generating a path
-	double grid_obstacle_offset_;	// in [m], the additional offset of the grid to obstacles, i.e. allows to displace the grid by more than the standard half_grid_size from obstacles
-	int max_deviation_from_track_;	// in [pixel], maximal allowed shift off the ideal boustrophedon track to both sides for avoiding obstacles on track
-									// setting max_deviation_from_track=grid_spacing is usually a good choice
-									// for negative values (e.g. max_deviation_from_track: -1) max_deviation_from_track is automatically set to grid_spacing
-	int cell_visiting_order_;		// cell visiting order
-									//   1 = optimal visiting order of the cells determined as TSP problem
-									//   2 = alternative ordering from left to right (measured on y-coordinates of the cells), visits the cells in a more obvious fashion to the human observer (though it is not optimal)
-
+	double min_cell_area_;		   // minimal area a cell can have, when using the boustrophedon explorator
+	double path_eps_;			   // the distance between points when generating a path
+	double grid_obstacle_offset_;  // in [m], the additional offset of the grid to obstacles, i.e. allows to displace the grid by more than the standard half_grid_size from obstacles
+	int max_deviation_from_track_; // in [pixel], maximal allowed shift off the ideal boustrophedon track to both sides for avoiding obstacles on track
+								   // setting max_deviation_from_track=grid_spacing is usually a good choice
+								   // for negative values (e.g. max_deviation_from_track: -1) max_deviation_from_track is automatically set to grid_spacing
+	int cell_visiting_order_;	   // cell visiting order
+								   //   1 = optimal visiting order of the cells determined as TSP problem
+								   //   2 = alternative ordering from left to right (measured on y-coordinates of the cells), visits the cells in a more obvious fashion to the human observer (though it is not optimal)
 
 	// parameters specific for the neural network explorator, see "A Neural Network Approach to Complete Coverage Path Planning" from Simon X. Yang and Chaomin Luo
-	double step_size_; // step size for integrating the state dynamics
-	int A_; // decaying parameter that pulls the activity of a neuron closer to zero, larger value means faster decreasing
-	int B_; // increasing parameter that tries to increase the activity of a neuron when it's not too big already, higher value means a higher desired value and a faster increasing at the beginning
-	int D_; // decreasing parameter when the neuron is labeled as obstacle, higher value means faster decreasing
-	int E_; // external input parameter of one neuron that is used in the dynamics corresponding to if it is an obstacle or uncleaned/cleaned, E>>B
-	double mu_; // parameter to set the importance of the states of neighboring neurons to the dynamics, higher value means higher influence
+	double step_size_;			// step size for integrating the state dynamics
+	int A_;						// decaying parameter that pulls the activity of a neuron closer to zero, larger value means faster decreasing
+	int B_;						// increasing parameter that tries to increase the activity of a neuron when it's not too big already, higher value means a higher desired value and a faster increasing at the beginning
+	int D_;						// decreasing parameter when the neuron is labeled as obstacle, higher value means faster decreasing
+	int E_;						// external input parameter of one neuron that is used in the dynamics corresponding to if it is an obstacle or uncleaned/cleaned, E>>B
+	double mu_;					// parameter to set the importance of the states of neighboring neurons to the dynamics, higher value means higher influence
 	double delta_theta_weight_; // parameter to set the importance of the traveleing direction from the previous step and the next step, a higher value means that the robot should turn less
 
 	// parameters specific for the convexSPP explorator
-	int cell_size_;				// size of one cell that is used to discretize the free space
-	double delta_theta_;			// sampling angle when creating possible sensing poses in the convexSPP explorator
+	int cell_size_;		 // size of one cell that is used to discretize the free space
+	double delta_theta_; // sampling angle when creating possible sensing poses in the convexSPP explorator
 
 	// parameters specific for the flowNetwork explorator
-	double curvature_factor_; // double that shows the factor, an arc can be longer than a straight arc when using the flowNetwork explorator
+	double curvature_factor_;	 // double that shows the factor, an arc can be longer than a straight arc when using the flowNetwork explorator
 	double max_distance_factor_; // double that shows how much an arc can be longer than the maximal distance of the room, which is determined by the min/max coordinates that are set in the goal
-
 
 	// callback function for dynamic reconfigure
 	rcl_interfaces::msg::SetParametersResult dynamic_reconfigure_callback(std::vector<rclcpp::Parameter> parameters);
@@ -223,25 +219,24 @@ protected:
 	void execute(const std::shared_ptr<GoalHandleRoomExploration> goal_handle);
 
 	// remove unconnected, i.e. inaccessible, parts of the room (i.e. obstructed by furniture), only keep the room with the largest area
-	bool removeUnconnectedRoomParts(cv::Mat& room_map);
+	bool removeUnconnectedRoomParts(cv::Mat &room_map);
 
 	// clean path from subsequent double occurrences of the same pose
 	// min_dist_squared is the squared minimum distance between two points on the trajectory, in [pixel] (i.e. grid cells)
-	void downsampleTrajectory(const std::vector<geometry_msgs::msg::Pose2D>& path_uncleaned, std::vector<geometry_msgs::msg::Pose2D>& path, const double min_dist_squared);
-
+	void downsampleTrajectory(const std::vector<geometry_msgs::msg::Pose2D> &path_uncleaned, std::vector<geometry_msgs::msg::Pose2D> &path, const double min_dist_squared);
 
 	// excute the planned trajectory and drive to unexplored areas after moving along the computed path
-	void navigateExplorationPath(const std::vector<geometry_msgs::msg::Pose2D>& exploration_path, const std::vector<geometry_msgs::msg::Point32>& field_of_view,
-			const geometry_msgs::msg::Point32& field_of_view_origin, const double coverage_radius, const double distance_robot_fov_middlepoint,
-			const float map_resolution, const geometry_msgs::msg::Pose& map_origin, const double grid_spacing_in_pixel, const double map_height);
+	void navigateExplorationPath(const std::vector<geometry_msgs::msg::Pose2D> &exploration_path, const std::vector<geometry_msgs::msg::Point32> &field_of_view,
+								 const geometry_msgs::msg::Point32 &field_of_view_origin, const double coverage_radius, const double distance_robot_fov_middlepoint,
+								 const float map_resolution, const geometry_msgs::msg::Pose &map_origin, const double grid_spacing_in_pixel, const double map_height);
 
 	// function to publish a navigation goal, it returns true if the goal could be reached
 	// eps_x and eps_y are used to define a epsilon neighborhood around the goal in which a new nav_goal gets published
 	// 	--> may smooth the process, move_base often slows before and stops at the goal
-	bool publishNavigationGoal(const geometry_msgs::msg::Pose2D& nav_goal, const std::string map_frame,
-			const std::string camera_frame, std::vector<geometry_msgs::msg::Pose2D>& robot_poses,
-			const double robot_to_fov_middlepoint_distance, const double eps = 0.0,
-			const bool perimeter_check = false);
+	bool publishNavigationGoal(const geometry_msgs::msg::Pose2D &nav_goal, const std::string map_frame,
+							   const std::string camera_frame, std::vector<geometry_msgs::msg::Pose2D> &robot_poses,
+							   const double robot_to_fov_middlepoint_distance, const double eps = 0.0,
+							   const bool perimeter_check = false);
 
 	// converter-> Pixel to meter for X coordinate
 	double convertPixelToMeterForXCoordinate(const int pixel_valued_object_x, const float map_resolution, const cv::Point2d map_origin)
@@ -259,9 +254,9 @@ protected:
 	// function to transform the given map in a way s.t. the OpenCV and room coordinate system are the same
 	//	--> the map_saver from ros saves maps as images with the origin laying in the lower left corner of it, but openCV assumes
 	//		that the origin is in the upper left corner, also they are rotated around the image-x-axis about each other
-	void transformImageToRoomCordinates(cv::Mat& map)
+	void transformImageToRoomCordinates(cv::Mat &map)
 	{
-		cv::Point2f src_center(map.cols/2.0F, map.rows/2.0F);
+		cv::Point2f src_center(map.cols / 2.0F, map.rows / 2.0F);
 		cv::Mat rot_mat = getRotationMatrix2D(src_center, 180, 1.0);
 		cv::Mat dst;
 		cv::warpAffine(map, dst, rot_mat, map.size());
@@ -271,13 +266,13 @@ protected:
 	// function to create an occupancyGrid map out of a given cv::Mat
 	void matToMap(nav_msgs::msg::OccupancyGrid &map, const cv::Mat &mat)
 	{
-		map.info.width  = mat.cols;
+		map.info.width = mat.cols;
 		map.info.height = mat.rows;
-		map.data.resize(mat.cols*mat.rows);
+		map.data.resize(mat.cols * mat.rows);
 
-		for(int x=0; x<mat.cols; x++)
-			for(int y=0; y<mat.rows; y++)
-				map.data[y*mat.cols+x] = mat.at<int8_t>(y,x)?0:100;
+		for (int x = 0; x < mat.cols; x++)
+			for (int y = 0; y < mat.rows; y++)
+				map.data[y * mat.cols + x] = mat.at<int8_t>(y, x) ? 0 : 100;
 	}
 
 	// function to create a cv::Mat out of a given occupancyGrid map
@@ -285,27 +280,26 @@ protected:
 	{
 		mat = cv::Mat(map.info.height, map.info.width, CV_8U);
 
-		for(int x=0; x<mat.cols; x++)
-			for(int y=0; y<mat.rows; y++)
-				mat.at<int8_t>(y,x) = map.data[y*mat.cols+x];
+		for (int x = 0; x < mat.cols; x++)
+			for (int y = 0; y < mat.rows; y++)
+				mat.at<int8_t>(y, x) = map.data[y * mat.cols + x];
 	}
 
-	// !!Important!!
-	//  define the Nodehandle before the action server, or else the server won't start
-	//
-	// ros::NodeHandle node_handle_;
-	// actionlib::SimpleActionServer<ipa_building_msgs::RoomExplorationAction> room_exploration_server_;
-	// dynamic_reconfigure::Server<ipa_room_exploration::RoomExplorationConfig> room_exploration_dynamic_reconfigure_server_;
 	rclcpp_action::Server<RoomExploration>::SharedPtr action_server_;
 	rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_handle_;
 
 	rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
 	nav_msgs::msg::OccupancyGrid global_costmap_;
+
 public:
-	enum PlanningMode {PLAN_FOR_FOOTPRINT=1, PLAN_FOR_FOV=2};
+	enum PlanningMode
+	{
+		PLAN_FOR_FOOTPRINT = 1,
+		PLAN_FOR_FOV = 2
+	};
 
 	// initialize the action-server
-	explicit RoomExplorationServer(const rclcpp::NodeOptions &options);
+	explicit RoomExplorationServer();
 
 	// default destructor for the class
 	~RoomExplorationServer(void)

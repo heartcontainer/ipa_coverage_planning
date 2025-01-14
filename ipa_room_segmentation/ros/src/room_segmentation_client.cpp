@@ -78,8 +78,8 @@ public:
     using MapSegmentation = ipa_building_msgs::action::MapSegmentation;
     using GoalHandleMapSegmentation = rclcpp_action::ClientGoalHandle<MapSegmentation>;
 
-    explicit RoomSegmentationClient(const rclcpp::NodeOptions &options)
-        : Node("room_segmentation_client", options)
+    explicit RoomSegmentationClient()
+        : Node("room_segmentation_client", rclcpp::NodeOptions())
     {
         this->client_ptr_ = rclcpp_action::create_client<MapSegmentation>(
             this,
@@ -294,7 +294,7 @@ private:
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    auto node = std::make_shared<RoomSegmentationClient>(rclcpp::NodeOptions());
+    auto node = std::make_shared<RoomSegmentationClient>();
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;

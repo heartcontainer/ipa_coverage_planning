@@ -36,8 +36,8 @@ public:
 	using FindRoomSequenceWithCheckpoints = ipa_building_msgs::action::FindRoomSequenceWithCheckpoints;
 	using GoalHandleFindRoomSequenceWithCheckpoints = rclcpp_action::ClientGoalHandle<FindRoomSequenceWithCheckpoints>;
 
-	explicit RoomSequencePlanningClient(const rclcpp::NodeOptions &options)
-		: Node("room_sequence_planning_client", options)
+	explicit RoomSequencePlanningClient()
+		: Node("room_sequence_planning_client", rclcpp::NodeOptions())
 	{
 		this->map_segmentation_client_ptr_ = rclcpp_action::create_client<MapSegmentation>(
 			this,
@@ -222,7 +222,7 @@ private:
 int main(int argc, char **argv)
 {
 	rclcpp::init(argc, argv);
-	auto node = std::make_shared<RoomSequencePlanningClient>(rclcpp::NodeOptions());
+	auto node = std::make_shared<RoomSequencePlanningClient>();
 	rclcpp::spin(node);
 	rclcpp::shutdown();
 	return 0;

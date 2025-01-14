@@ -66,7 +66,7 @@
 
 static bool DEBUG_DISPLAYS = false;
 
-RoomSegmentationServer::RoomSegmentationServer(const rclcpp::NodeOptions &options) : rclcpp::Node("room_segmentation_server", options)
+RoomSegmentationServer::RoomSegmentationServer() : rclcpp::Node("room_segmentation_server", rclcpp::NodeOptions())
 {
 	// Action server setup
 	this->action_server_ = rclcpp_action::create_server<MapSegmentation>(
@@ -851,12 +851,8 @@ bool RoomSegmentationServer::extractAreaMapFromLabeledMap(const ipa_building_msg
 int main(int argc, char **argv)
 {
 	rclcpp::init(argc, argv);
-
-	auto node = std::make_shared<RoomSegmentationServer>(rclcpp::NodeOptions());
-	RCLCPP_INFO(node->get_logger(), "Action Server for room segmentation has been initialized......");
+	auto node = std::make_shared<RoomSegmentationServer>();
 	rclcpp::spin(node);
-
 	rclcpp::shutdown();
-
 	return 0;
 }
