@@ -2,12 +2,25 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
+from ament_index_python.packages import get_package_share_directory
+import os
 
 
 def generate_launch_description():
+    # Get the package share directory
+    package_dir = get_package_share_directory("ipa_room_segmentation")
+    default_map = os.path.join(package_dir, "common/files/test_maps/lab_ipa.png")
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "image_path",
+                default_value=default_map,
+            ),
+            DeclareLaunchArgument(
+                "save_exploration_map",
+                default_value="false",
+            ),
             DeclareLaunchArgument(
                 "room_exploration_algorithm",
                 default_value="8",
@@ -22,6 +35,10 @@ def generate_launch_description():
                 output="screen",
                 parameters=[
                     {
+                        "image_path": LaunchConfiguration("image_path"),
+                        "save_exploration_map": LaunchConfiguration(
+                            "save_exploration_map"
+                        ),
                         "room_exploration_algorithm": LaunchConfiguration(
                             "room_exploration_algorithm"
                         ),
