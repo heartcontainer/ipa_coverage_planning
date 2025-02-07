@@ -65,6 +65,7 @@
 #include "dynamic_reconfigure.h"
 
 static bool DEBUG_DISPLAYS = false;
+#define DEBUG_PERFORMANCE 1
 
 RoomSegmentationServer::RoomSegmentationServer() : rclcpp::Node("room_segmentation_server", rclcpp::NodeOptions())
 {
@@ -392,6 +393,9 @@ void RoomSegmentationServer::handle_accepted(const std::shared_ptr<GoalHandleMap
 
 void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmentation> goal_handle)
 {
+#if DEBUG_PERFORMANCE
+	auto start_time = this->now();
+#endif
 	const auto goal = goal_handle->get_goal();
 
 	// override pre-set segmentation algorithm on request
@@ -815,6 +819,10 @@ void RoomSegmentationServer::execute(const std::shared_ptr<GoalHandleMapSegmenta
 	goal_handle->succeed(action_result);
 
 	RCLCPP_INFO(this->get_logger(), "********Map segmentation finished************");
+#if DEBUG_PERFORMANCE
+	auto end_time = this->now();
+	RCLCPP_INFO(this->get_logger(), "Execution time: %.3f seconds", (end_time - start_time).seconds());
+#endif
 }
 
 bool RoomSegmentationServer::extractAreaMapFromLabeledMap(const ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Request::SharedPtr request, ipa_building_msgs::srv::ExtractAreaMapFromLabeledMap::Response::SharedPtr response)

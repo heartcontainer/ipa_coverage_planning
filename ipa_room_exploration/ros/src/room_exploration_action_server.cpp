@@ -638,7 +638,6 @@ void RoomExplorationServer::execute(const std::shared_ptr<GoalHandleRoomExplorat
 	auto end_time = this->now();
 	RCLCPP_INFO(this->get_logger(), "Execution time: %.3f seconds", (end_time - start_time).seconds());
 #endif
-	return;
 }
 
 // remove unconnected, i.e. inaccessible, parts of the room (i.e. obstructed by furniture), only keep the room with the largest area

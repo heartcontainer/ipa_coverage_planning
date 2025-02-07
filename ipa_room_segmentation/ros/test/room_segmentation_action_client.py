@@ -14,10 +14,18 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument(
+                "image_path",
+                default_value=default_map,
+            ),
+            DeclareLaunchArgument(
+                "save_segmented_map",
+                default_value="false",
+            ),
+            DeclareLaunchArgument(
                 "room_segmentation_algorithm",
                 default_value="3",
                 choices=["1", "2", "3", "4", "5"],
-                description='1.morphological 2.distance 3.Voronoi 4.semantic/feature-based 5.voronoi-random-field',
+                description="1.morphological 2.distance 3.Voronoi 4.semantic/feature-based 5.voronoi-random-field",
             ),
             Node(
                 package="ipa_room_segmentation",
@@ -26,7 +34,8 @@ def generate_launch_description():
                 namespace="room_segmentation",
                 parameters=[
                     {
-                        "image_path": default_map,
+                        "image_path": LaunchConfiguration("image_path"),
+                        "save_segmented_map": LaunchConfiguration("save_segmented_map"),
                         "room_segmentation_algorithm": LaunchConfiguration(
                             "room_segmentation_algorithm"
                         ),

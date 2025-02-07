@@ -86,8 +86,10 @@ public:
             "/room_segmentation/room_segmentation_server");
 
         this->declare_parameter<std::string>("image_path", "");
+        this->declare_parameter<bool>("save_segmented_map", false);
         this->declare_parameter<int>("room_segmentation_algorithm", 3);
         this->get_parameter("image_path", this->image_path_);
+        this->get_parameter("save_segmented_map", this->save_segmented_map_);
         this->get_parameter("room_segmentation_algorithm", this->room_segmentation_algorithm_);
 
         if (this->image_path_.empty())
@@ -210,6 +212,7 @@ public:
 private:
     rclcpp_action::Client<MapSegmentation>::SharedPtr client_ptr_;
     std::string image_path_;
+    bool save_segmented_map_;
     int room_segmentation_algorithm_;
 
     void goal_response_callback(const GoalHandleMapSegmentation::SharedPtr &future)
@@ -286,8 +289,19 @@ private:
 #endif
         }
 
-        cv::imshow("segmentation", colour_segmented_map);
-        cv::waitKey();
+        // display or save the map
+        if (save_segmented_map_)
+        {
+            std::string save_path = "room_segmentation/" + std::to_string(room_segmentation_algorithm_) + ".png";
+            cv::imwrite(save_path, colour_segmented_map);
+            RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
+            rclcpp::shutdown();
+        }
+        else
+        {
+            cv::imshow("segmentation", colour_segmented_map);
+            cv::waitKey();
+        }
     }
 };
 

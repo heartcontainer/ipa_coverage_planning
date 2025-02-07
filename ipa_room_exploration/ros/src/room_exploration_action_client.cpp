@@ -30,8 +30,12 @@ public:
 
     RoomExplorationClient() : Node("room_exploration_client")
     {
+        this->declare_parameter<std::string>("image_path", "");
+        this->declare_parameter<bool>("save_exploration_map", false);
         this->declare_parameter<int>("room_exploration_algorithm", 8);
 
+        this->get_parameter("image_path", image_path_);
+        this->get_parameter("save_exploration_map", save_exploration_map_);
         this->get_parameter("room_exploration_algorithm", room_exploration_algorithm_);
 
         if (start_pos_.size() != 3)
@@ -41,22 +45,9 @@ public:
             return;
         }
 
-        std::string image_path;
-        if (use_test_maps_)
-        {
-            const std::string test_map_path = ament_index_cpp::get_package_share_directory("ipa_room_segmentation") + "/common/files/test_maps/";
-            image_path = test_map_path + "lab_ipa.png";
-        }
-        else
-        {
-            std::string env_pack_path = this->declare_parameter<std::string>("env_pack", "ipa_room_segmentation");
-            std::string file_name = this->declare_parameter<std::string>("image", "map.pgm");
-            std::string map_name = this->declare_parameter<std::string>("robot_env", "lab_ipa");
-            image_path = env_pack_path + "/envs/" + map_name + "/" + file_name;
-        }
-
         // Load and process map
-        cv::Mat map_flipped = cv::imread(image_path, 0);
+        RCLCPP_INFO(this->get_logger(), "Loading map from: %s", image_path_.c_str());
+        cv::Mat map_flipped = cv::imread(image_path_, 0);
 
         cv::flip(map_flipped, map_, 0);
         for (int y = 0; y < map_.rows; y++)
@@ -168,8 +159,18 @@ public:
                     }
                     // std::cout << "coverage_path[" << point << "]: x=" << result.result->coverage_path[point].x << ", y=" << result.result->coverage_path[point].y << ", theta=" << result.result->coverage_path[point].theta << std::endl;
                 }
-                cv::imshow("path", path_map);
-                cv::waitKey();
+                if (save_exploration_map_)
+                {
+                    std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + ".png";
+                    cv::imwrite(save_path, path_map);
+                    RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
+                    rclcpp::shutdown();
+                }
+                else
+                {
+                    cv::imshow("path", path_map);
+                    cv::waitKey();
+                }
             }
             else
             {
@@ -183,6 +184,8 @@ public:
 
 private:
     rclcpp_action::Client<RoomExplorationAction>::SharedPtr action_client_;
+    std::string image_path_;
+    bool save_exploration_map_;
     int room_exploration_algorithm_;
     bool use_test_maps_ = true;
     double resolution_ = 0.05;
