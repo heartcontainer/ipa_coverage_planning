@@ -86,7 +86,7 @@ RoomExplorationServer::RoomExplorationServer() : rclcpp::Node("room_exploration_
 	this->declare_parameter<bool>("interrupt_navigation_publishing", false);
 	this->declare_parameter<bool>("revisit_areas", true);
 	this->declare_parameter<double>("left_sections_min_area", 0.01);
-	this->declare_parameter<std::string>("global_costmap_topic", "/move_base/global_costmap/costmap");
+	this->declare_parameter<std::string>("global_costmap_topic", "/global_costmap/costmap");
 	this->declare_parameter<std::string>("coverage_check_service_name", "/room_exploration/coverage_check_server/coverage_check");
 	this->declare_parameter<std::string>("map_frame", "map");
 	this->declare_parameter<std::string>("camera_frame", "base_link");

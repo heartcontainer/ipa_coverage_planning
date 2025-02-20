@@ -12,6 +12,9 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <ipa_building_msgs/action/room_exploration.hpp>
 #include "dynamic_reconfigure.h"
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 
 // Overload of << operator for geometry_msgs::msg::Pose2D to wanted format
 std::ostream &operator<<(std::ostream &os, const geometry_msgs::msg::Pose2D &obj)
@@ -38,6 +41,10 @@ public:
         this->get_parameter("save_exploration_map", save_exploration_map_);
         this->get_parameter("room_exploration_algorithm", room_exploration_algorithm_);
 
+        tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
+        get_robot_pose();
         if (start_pos_.size() != 3)
         {
             RCLCPP_FATAL(this->get_logger(), "starting_position must contain 3 values");
@@ -45,6 +52,55 @@ public:
             return;
         }
 
+        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server", {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_), rclcpp::Parameter("execute_path", false)}))
+        {
+            rclcpp::shutdown();
+            return;
+        }
+
+        if (image_path_ == "")
+        {
+            map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+                "/map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
+                std::bind(&RoomExplorationClient::mapCallback, this, std::placeholders::_1));
+            RCLCPP_INFO(this->get_logger(), "Subscribed to /map topic");
+        }
+        else
+        {
+            loadMap();
+        }
+    }
+
+private:
+    void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+    {
+        int width = msg->info.width;
+        int height = msg->info.height;
+        RCLCPP_INFO(this->get_logger(), "Received map with width: %d, height: %d", width, height);
+
+        map_ = cv::Mat(height, width, CV_8UC1);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int index = y * width + x;
+                int8_t value = msg->data[index];
+
+                if (value == -1)
+                    map_.at<uchar>(y, x) = 127;
+                else if (value == 0)
+                    map_.at<uchar>(y, x) = 255;
+                else
+                    map_.at<uchar>(y, x) = 0;
+            }
+        }
+
+        sendGoal();
+    }
+
+    void loadMap()
+    {
         // Load and process map
         RCLCPP_INFO(this->get_logger(), "Loading map from: %s", image_path_.c_str());
         cv::Mat map_flipped = cv::imread(image_path_, 0);
@@ -58,13 +114,11 @@ public:
             }
         }
         RCLCPP_INFO(this->get_logger(), "Map size: %dx%d", map_.rows, map_.cols);
+        sendGoal();
+    }
 
-        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server", {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_), rclcpp::Parameter("execute_path", false)}))
-        {
-            rclcpp::shutdown();
-            return;
-        }
-
+    void sendGoal()
+    {
         // Convert map to sensor_msgs/Image
         sensor_msgs::msg::Image labeling;
         cv_bridge::CvImage cv_image;
@@ -84,15 +138,15 @@ public:
         starting_position.theta = start_pos_[2];
 
         std::vector<geometry_msgs::msg::Point32> fov_points(4);
-        fov_points[0].x = 0.04035; // this field of view represents the off-center iMop floor wiping device
-        fov_points[0].y = -0.136;
-        fov_points[1].x = 0.04035;
-        fov_points[1].y = 0.364;
-        fov_points[2].x = 0.54035; // todo: this definition is mirrored on x (y-coordinates are inverted) to work properly --> check why, make it work the intuitive way
-        fov_points[2].y = 0.364;
-        fov_points[3].x = 0.54035;
-        fov_points[3].y = -0.136;
-        int planning_mode = 2;
+        // fov_points[0].x = 0.04035; // this field of view represents the off-center iMop floor wiping device
+        // fov_points[0].y = -0.136;
+        // fov_points[1].x = 0.04035;
+        // fov_points[1].y = 0.364;
+        // fov_points[2].x = 0.54035; // todo: this definition is mirrored on x (y-coordinates are inverted) to work properly --> check why, make it work the intuitive way
+        // fov_points[2].y = 0.364;
+        // fov_points[3].x = 0.54035;
+        // fov_points[3].y = -0.136;
+        // int planning_mode = 2;
         //	fov_points[0].x = 0.15;		// this field of view fits a Asus Xtion sensor mounted at 0.63m height (camera center) pointing downwards to the ground in a respective angle
         //	fov_points[0].y = 0.35;
         //	fov_points[1].x = 0.15;
@@ -110,7 +164,7 @@ public:
         //	fov_points[2].y = -0.3;
         //	fov_points[3].x = 0.3;
         //	fov_points[3].y = 0.3;
-        //	int planning_mode = 1;	// footprint planning
+        int planning_mode = 1; // footprint planning
 
         geometry_msgs::msg::Point32 fov_origin;
         fov_origin.x = 0.0;
@@ -130,7 +184,7 @@ public:
         goal.input_map = labeling;
         goal.map_resolution = resolution_;
         goal.map_origin = map_origin;
-        goal.robot_radius = robot_radius_; // turtlebot, used for sim 0.177, 0.4
+        goal.robot_radius = robot_radius_;
         goal.coverage_radius = coverage_radius_;
         goal.field_of_view = fov_points;
         goal.field_of_view_origin = fov_origin;
@@ -140,46 +194,112 @@ public:
         RCLCPP_INFO(this->get_logger(), "Sending goal...");
 
         auto send_goal_options = rclcpp_action::Client<RoomExplorationAction>::SendGoalOptions();
-        send_goal_options.result_callback = [this](const GoalHandleRoomExploration::WrappedResult &result)
+        send_goal_options.result_callback = std::bind(&RoomExplorationClient::result_callback, this, std::placeholders::_1);
+        action_client_->async_send_goal(goal, send_goal_options);
+    }
+
+    void result_callback(
+        const GoalHandleRoomExploration::WrappedResult &result)
+    {
+        if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
         {
-            if (result.code == rclcpp_action::ResultCode::SUCCEEDED)
+            RCLCPP_INFO(this->get_logger(), "Goal succeeded with result: Got a path with %lu nodes", result.result->coverage_path.size());
+            // display path
+            const double inverse_map_resolution = 1. / resolution_;
+            double scale_factor = 4.0;
+            cv::Scalar red(0, 0, 255), green(0, 255, 0), blue(255, 0, 0), grey(128, 128, 128);
+
+            cv::Mat rgb_image;
+            cv::cvtColor(map_.clone(), rgb_image, cv::COLOR_GRAY2RGB);
+            cv::Mat path_map;
+            cv::resize(rgb_image, path_map, cv::Size(), scale_factor, scale_factor, cv::INTER_NEAREST);
+            // draw start position
+            cv::Point start_point((start_pos_[0] - origin_[0]) * inverse_map_resolution * scale_factor, (start_pos_[1] - origin_[1]) * inverse_map_resolution * scale_factor);
+            cv::circle(path_map, start_point, 5.0, red, -1);
+
+            cv::Point last_point, current_point;
+
+            for (size_t i = 0; i < result.result->coverage_path.size(); i++)
             {
-                RCLCPP_INFO(this->get_logger(), "Goal succeeded with result: Got a path with %lu nodes", result.result->coverage_path.size());
-                // display path
-                const double inverse_map_resolution = 1. / resolution_;
-                cv::Mat path_map = map_.clone();
-                for (size_t point = 0; point < result.result->coverage_path.size(); ++point)
+                current_point.x = (result.result->coverage_path[i].x - origin_[0]) * inverse_map_resolution * scale_factor;
+                current_point.y = (result.result->coverage_path[i].y - origin_[1]) * inverse_map_resolution * scale_factor;
+                if (i == 0)
                 {
-                    const cv::Point point1((result.result->coverage_path[point].x - origin_[0]) * inverse_map_resolution, (result.result->coverage_path[point].y - origin_[1]) * inverse_map_resolution);
-                    cv::circle(path_map, point1, 2, cv::Scalar(128), -1);
-                    if (point > 0)
-                    {
-                        const cv::Point point2((result.result->coverage_path[point - 1].x - origin_[0]) * inverse_map_resolution, (result.result->coverage_path[point - 1].y - origin_[1]) * inverse_map_resolution);
-                        cv::line(path_map, point1, point2, cv::Scalar(128), 1);
-                    }
-                    // std::cout << "coverage_path[" << point << "]: x=" << result.result->coverage_path[point].x << ", y=" << result.result->coverage_path[point].y << ", theta=" << result.result->coverage_path[point].theta << std::endl;
+                    cv::circle(path_map, current_point, 5.0, green, -1);
                 }
-                if (save_exploration_map_)
+                else if (i == result.result->coverage_path.size() - 1)
                 {
-                    std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + ".png";
-                    cv::imwrite(save_path, path_map);
-                    RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
-                    rclcpp::shutdown();
+                    cv::circle(path_map, current_point, 5.0, blue, -1);
                 }
                 else
                 {
-                    cv::imshow("path", path_map);
-                    cv::waitKey();
+                    cv::circle(path_map, current_point, 2.0, grey, -1);
                 }
+                if (i > 0)
+                {
+                    cv::line(path_map, last_point, current_point, grey, 1);
+                }
+                last_point = current_point;
+                // std::cout << "coverage_path[" << i << "]: x=" << result.result->coverage_path[i].x << ", y=" << result.result->coverage_path[i].y << ", theta=" << result.result->coverage_path[i].theta << std::endl;
+            }
+            if (save_exploration_map_)
+            {
+                std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + ".png";
+                cv::imwrite(save_path, path_map);
+                RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
             }
             else
             {
-                RCLCPP_ERROR(this->get_logger(), "Goal failed with code: %d", static_cast<int>(result.code));
+                cv::imshow("path", path_map);
+                cv::waitKey();
             }
-            rclcpp::shutdown();
-        };
+        }
+        else
+        {
+            RCLCPP_ERROR(this->get_logger(), "Goal failed with code: %d", static_cast<int>(result.code));
+        }
+        rclcpp::shutdown();
+    }
 
-        action_client_->async_send_goal(goal, send_goal_options);
+    void get_robot_pose()
+    {
+        std::string tf_error;
+
+        while (!tf_buffer_->canTransform("map", "base_link", tf2::TimePointZero, &tf_error))
+        {
+            RCLCPP_INFO(this->get_logger(), "Waiting for transforms...");
+            tf_error.clear();
+            sleep(1);
+        }
+        RCLCPP_INFO(this->get_logger(), "Transforms are available now!");
+
+        try
+        {
+            geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero, std::chrono::milliseconds(100));
+
+            double x = transform_stamped.transform.translation.x;
+            double y = transform_stamped.transform.translation.y;
+            double z = transform_stamped.transform.translation.z;
+
+            tf2::Quaternion q(
+                transform_stamped.transform.rotation.x,
+                transform_stamped.transform.rotation.y,
+                transform_stamped.transform.rotation.z,
+                transform_stamped.transform.rotation.w);
+            tf2::Matrix3x3 m(q);
+            double roll, pitch, yaw;
+            m.getRPY(roll, pitch, yaw);
+
+            RCLCPP_INFO(this->get_logger(), "Robot pose: x=%f, y=%f, z=%f, roll=%f, pitch=%f, yaw=%f", x, y, z, roll, pitch, yaw);
+
+            start_pos_[0] = x;
+            start_pos_[1] = y;
+            start_pos_[2] = yaw;
+        }
+        catch (const tf2::TransformException &ex)
+        {
+            RCLCPP_WARN(this->get_logger(), "Could not get robot pose: %s", ex.what());
+        }
     }
 
 private:
@@ -189,11 +309,15 @@ private:
     int room_exploration_algorithm_;
     bool use_test_maps_ = true;
     double resolution_ = 0.05;
-    std::vector<double> origin_ = {0.0, 0.0, 0.0};
-    double robot_radius_ = 0.3;
-    double coverage_radius_ = 1.0;
+    std::vector<double> origin_ = {-6.43, -3.66, 0.0};
+    double robot_radius_ = 0.265;
+    double coverage_radius_ = 0.265;
     std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
     cv::Mat map_;
+
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
 };
 
 int main(int argc, char **argv)
