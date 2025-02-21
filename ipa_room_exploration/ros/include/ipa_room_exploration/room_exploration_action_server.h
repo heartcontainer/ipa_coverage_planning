@@ -108,14 +108,11 @@
 #include <ipa_room_exploration/room_rotator.h>
 #include <ipa_room_exploration/coverage_check_server.h>
 #include "rclcpp_action/rclcpp_action.hpp"
-#include "nav2_msgs/action/navigate_to_pose.hpp"
 
 #define PI 3.14159265359
 
 using RoomExploration = ipa_building_msgs::action::RoomExploration;
 using GoalHandleRoomExploration = rclcpp_action::ServerGoalHandle<RoomExploration>;
-using NavigateToPose = nav2_msgs::action::NavigateToPose;
-using GoalHandleNavigateToPose = rclcpp_action::ClientGoalHandle<NavigateToPose>;
 
 class RoomExplorationServer : public rclcpp::Node
 {
@@ -225,44 +222,6 @@ protected:
 	// min_dist_squared is the squared minimum distance between two points on the trajectory, in [pixel] (i.e. grid cells)
 	void downsampleTrajectory(const std::vector<geometry_msgs::msg::Pose2D> &path_uncleaned, std::vector<geometry_msgs::msg::Pose2D> &path, const double min_dist_squared);
 
-	// excute the planned trajectory and drive to unexplored areas after moving along the computed path
-	void navigateExplorationPath(const std::vector<geometry_msgs::msg::Pose2D> &exploration_path, const std::vector<geometry_msgs::msg::Point32> &field_of_view,
-								 const geometry_msgs::msg::Point32 &field_of_view_origin, const double coverage_radius, const double distance_robot_fov_middlepoint,
-								 const float map_resolution, const geometry_msgs::msg::Pose &map_origin, const double grid_spacing_in_pixel, const double map_height);
-
-	// function to publish a navigation goal, it returns true if the goal could be reached
-	// eps_x and eps_y are used to define a epsilon neighborhood around the goal in which a new nav_goal gets published
-	// 	--> may smooth the process, move_base often slows before and stops at the goal
-	bool publishNavigationGoal(const geometry_msgs::msg::Pose2D &nav_goal, const std::string map_frame,
-							   const std::string camera_frame, std::vector<geometry_msgs::msg::Pose2D> &robot_poses,
-							   const double robot_to_fov_middlepoint_distance, const double eps = 0.0,
-							   const bool perimeter_check = false);
-
-	// converter-> Pixel to meter for X coordinate
-	double convertPixelToMeterForXCoordinate(const int pixel_valued_object_x, const float map_resolution, const cv::Point2d map_origin)
-	{
-		double meter_value_obj_x = (pixel_valued_object_x * map_resolution) + map_origin.x;
-		return meter_value_obj_x;
-	}
-	// converter-> Pixel to meter for Y coordinate
-	double convertPixelToMeterForYCoordinate(int pixel_valued_object_y, const float map_resolution, const cv::Point2d map_origin)
-	{
-		double meter_value_obj_y = (pixel_valued_object_y * map_resolution) + map_origin.y;
-		return meter_value_obj_y;
-	}
-
-	// function to transform the given map in a way s.t. the OpenCV and room coordinate system are the same
-	//	--> the map_saver from ros saves maps as images with the origin laying in the lower left corner of it, but openCV assumes
-	//		that the origin is in the upper left corner, also they are rotated around the image-x-axis about each other
-	void transformImageToRoomCordinates(cv::Mat &map)
-	{
-		cv::Point2f src_center(map.cols / 2.0F, map.rows / 2.0F);
-		cv::Mat rot_mat = getRotationMatrix2D(src_center, 180, 1.0);
-		cv::Mat dst;
-		cv::warpAffine(map, dst, rot_mat, map.size());
-		cv::flip(dst, map, 1);
-	}
-
 	// function to create an occupancyGrid map out of a given cv::Mat
 	void matToMap(nav_msgs::msg::OccupancyGrid &map, const cv::Mat &mat)
 	{
@@ -287,9 +246,6 @@ protected:
 
 	rclcpp_action::Server<RoomExploration>::SharedPtr action_server_;
 	rclcpp::Node::OnSetParametersCallbackHandle::SharedPtr on_set_parameters_callback_handle_;
-
-	rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
-	nav_msgs::msg::OccupancyGrid global_costmap_;
 
 public:
 	enum PlanningMode
