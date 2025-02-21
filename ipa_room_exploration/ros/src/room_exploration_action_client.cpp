@@ -77,7 +77,11 @@ private:
     {
         int width = msg->info.width;
         int height = msg->info.height;
-        RCLCPP_INFO(this->get_logger(), "Received map with width: %d, height: %d", width, height);
+        resolution_ = msg->info.resolution;
+        origin_[0] = msg->info.origin.position.x;
+        origin_[1] = msg->info.origin.position.y;
+        origin_[2] = msg->info.origin.position.z;
+        RCLCPP_INFO(this->get_logger(), "Received map with width: %d, height: %d resolution: %f, origin: [%f, %f, %f]", width, height, resolution_, origin_[0], origin_[1], origin_[2]);
 
         map_ = cv::Mat(height, width, CV_8UC1);
 
@@ -310,7 +314,7 @@ private:
     int room_exploration_algorithm_;
     bool use_test_maps_ = true;
     double resolution_ = 0.05;
-    std::vector<double> origin_ = {-6.43, -3.66, 0.0};
+    std::vector<double> origin_ = {0.0, 0.0, 0.0};
     double robot_radius_ = 0.265;
     double coverage_radius_ = 0.265;
     std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
