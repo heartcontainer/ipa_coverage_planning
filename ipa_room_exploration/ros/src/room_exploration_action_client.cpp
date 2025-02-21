@@ -52,7 +52,8 @@ public:
             return;
         }
 
-        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server", {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_), rclcpp::Parameter("execute_path", false)}))
+        if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server",
+                                                    {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_)}))
         {
             rclcpp::shutdown();
             return;

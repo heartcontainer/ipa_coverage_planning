@@ -11,6 +11,7 @@ find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(nav2_msgs REQUIRED)
+find_package(nav2_util REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -127,6 +128,7 @@ ament_target_dependencies(room_exploration_server
   ipa_building_navigation
   nav_msgs
   nav2_msgs
+  nav2_util
   ipa_building_common
 )
 target_link_libraries(room_exploration_server
