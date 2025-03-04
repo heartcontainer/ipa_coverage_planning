@@ -249,9 +249,11 @@ private:
             }
             if (save_exploration_map_)
             {
-                std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + ".png";
+                std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + "_" + getCurrentTimeString() + ".png";
                 cv::imwrite(save_path, path_map);
                 RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
+                start_watch_robot_coverage_poses();
+                save_coverage_image();
             }
             else
             {
@@ -307,6 +309,83 @@ private:
         }
     }
 
+    std::string getCurrentTimeString()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+        std::tm tm{};
+        localtime_r(&now_c, &tm);
+
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%Y%m%d_%H%M%S");
+
+        return oss.str();
+    }
+
+    void start_watch_robot_coverage_poses()
+    {
+        RCLCPP_INFO(this->get_logger(), "Start watching robot coverage poses");
+        rclcpp::WallRate rate(5); // 1 Hz
+
+        while (rclcpp::ok())
+        {
+            try
+            {
+                geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero, std::chrono::milliseconds(100));
+                robot_coverage_poses_.push_back(transform_stamped);
+
+                double x = transform_stamped.transform.translation.x;
+                double y = transform_stamped.transform.translation.y;
+                double z = transform_stamped.transform.translation.z;
+
+                tf2::Quaternion q(
+                    transform_stamped.transform.rotation.x,
+                    transform_stamped.transform.rotation.y,
+                    transform_stamped.transform.rotation.z,
+                    transform_stamped.transform.rotation.w);
+                tf2::Matrix3x3 m(q);
+                double roll, pitch, yaw;
+                m.getRPY(roll, pitch, yaw);
+
+                RCLCPP_INFO(this->get_logger(), "Robot pose: x=%f, y=%f, z=%f, roll=%f, pitch=%f, yaw=%f", x, y, z, roll, pitch, yaw);
+
+                rate.sleep();
+            }
+            catch (const tf2::TransformException &ex)
+            {
+                RCLCPP_WARN(this->get_logger(), "Could not get robot pose: %s", ex.what());
+            }
+        }
+        RCLCPP_INFO(this->get_logger(), "Stop watching robot coverage poses, total poses: %ld", robot_coverage_poses_.size());
+    }
+
+    void save_coverage_image()
+    {
+        const double inverse_map_resolution = 1. / resolution_;
+        double scale_factor = 4.0;
+        cv::Scalar red(0, 0, 255), green(0, 255, 0), blue(255, 0, 0), grey(128, 128, 128);
+
+        cv::Mat rgb_image;
+        cv::cvtColor(map_.clone(), rgb_image, cv::COLOR_GRAY2RGB);
+        cv::Mat path_map;
+        cv::resize(rgb_image, path_map, cv::Size(), scale_factor, scale_factor, cv::INTER_NEAREST);
+
+        cv::Point current_point;
+
+        for (size_t i = 0; i < robot_coverage_poses_.size(); i++)
+        {
+            current_point.x = (robot_coverage_poses_[i].transform.translation.x - origin_[0]) * inverse_map_resolution * scale_factor;
+            current_point.y = (robot_coverage_poses_[i].transform.translation.y - origin_[1]) * inverse_map_resolution * scale_factor;
+
+            cv::circle(path_map, current_point, coverage_radius_ * scale_factor / resolution_, red, -1);
+        }
+
+        std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + "_coverage_" + getCurrentTimeString() + ".png";
+        cv::imwrite(save_path, path_map);
+        RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
+    }
+
 private:
     rclcpp_action::Client<RoomExplorationAction>::SharedPtr action_client_;
     std::string image_path_;
@@ -319,6 +398,7 @@ private:
     double coverage_radius_ = 0.265;
     std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
     cv::Mat map_;
+    std::vector<geometry_msgs::msg::TransformStamped> robot_coverage_poses_;
 
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
