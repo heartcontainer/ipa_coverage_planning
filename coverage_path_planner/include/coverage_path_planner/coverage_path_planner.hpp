@@ -10,7 +10,16 @@
 #include "nav2_msgs/action/follow_waypoints.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include <nav_msgs/msg/occupancy_grid.hpp>
+#include "geometry_msgs/msg/transform_stamped.hpp"
 
+// #include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
+
+#define COVERAGE_PATH_BENCHMARK 1
 namespace coverage_path_planner
 {
 
@@ -32,9 +41,34 @@ namespace coverage_path_planner
     nav2_util::CallbackReturn on_shutdown(const rclcpp_lifecycle::State &state) override;
 
     void pathCallback(const nav_msgs::msg::Path::SharedPtr msg);
+    void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
+#if COVERAGE_PATH_BENCHMARK
+    void timerCallback();
+    // void startWatchRobotCoveragePoses();
+    void saveCoverageImage();
+    std::string getCurrentTimeString();
+#endif
 
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_sub_;
     rclcpp_action::Client<FollowWaypoints>::SharedPtr follow_waypoints_client_;
+    bool coverage_in_progress_ = false;
+    int current_waypoint_ = 0;
+
+#if COVERAGE_PATH_BENCHMARK
+    double resolution_ = 0.05;
+    std::vector<double> origin_ = {0.0, 0.0, 0.0};
+    // double robot_radius_ = 0.265;
+    double coverage_radius_ = 0.265;
+    // std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
+    cv::Mat map_;
+    std::vector<geometry_msgs::msg::TransformStamped> robot_coverage_poses_;
+
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Time start_time_;
+#endif
   };
 
 } // namespace coverage_path_planner
