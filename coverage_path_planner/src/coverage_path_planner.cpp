@@ -28,9 +28,6 @@ namespace coverage_path_planner
 #if COVERAGE_PATH_BENCHMARK
     tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-    // map_sub_ = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
-    //     "/map", rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable(),
-    //     std::bind(&CoveragePathPlanner::mapCallback, this, std::placeholders::_1));
 #endif
     return nav2_util::CallbackReturn::SUCCESS;
   }
@@ -63,13 +60,7 @@ namespace coverage_path_planner
       RCLCPP_INFO(get_logger(), "Coverage in progress, canceling the goal...");
       // follow_waypoints_client_->async_cancel_all_goals();
       coverage_in_progress_ = false;
-      // #if COVERAGE_PATH_BENCHMARK
-      // saveCoverageImage();
     }
-    // map_sub_.reset();
-    // #else
-    //     }
-    // #endif
     path_sub_.reset();
     follow_waypoints_client_.reset();
     return nav2_util::CallbackReturn::SUCCESS;
@@ -137,8 +128,6 @@ namespace coverage_path_planner
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(200),
         std::bind(&CoveragePathPlanner::timerCallback, this));
-    // startWatchRobotCoveragePoses();
-    // saveCoverageImage();
 #endif
   }
 
@@ -212,50 +201,6 @@ namespace coverage_path_planner
       timer_.reset();
     }
   }
-
-  // void CoveragePathPlanner::startWatchRobotCoveragePoses()
-  // {
-  //   // RCLCPP_INFO(this->get_logger(), "Start watching robot coverage poses");
-  //   // rclcpp::WallRate rate(5); // 1 Hz
-  //   // if (!robot_coverage_poses_.empty())
-  //   // {
-  //   //   RCLCPP_WARN(this->get_logger(), "Robot coverage poses is not empty, clearing...");
-  //   //   robot_coverage_poses_.clear();
-  //   // }
-
-  //   // auto start_time = this->now();
-  //   // while (rclcpp::ok() && coverage_in_progress_)
-  //   // {
-  //   try
-  //   {
-  //     geometry_msgs::msg::TransformStamped transform_stamped = tf_buffer_->lookupTransform("map", "base_link", tf2::TimePointZero, std::chrono::milliseconds(100));
-  //     robot_coverage_poses_.push_back(transform_stamped);
-
-  //     double x = transform_stamped.transform.translation.x;
-  //     double y = transform_stamped.transform.translation.y;
-  //     double z = transform_stamped.transform.translation.z;
-
-  //     tf2::Quaternion q(
-  //         transform_stamped.transform.rotation.x,
-  //         transform_stamped.transform.rotation.y,
-  //         transform_stamped.transform.rotation.z,
-  //         transform_stamped.transform.rotation.w);
-  //     tf2::Matrix3x3 m(q);
-  //     double roll, pitch, yaw;
-  //     m.getRPY(roll, pitch, yaw);
-
-  //     RCLCPP_INFO(this->get_logger(), "Robot pose[%ld]: x=%f, y=%f, z=%f, roll=%f, pitch=%f, yaw=%f", robot_coverage_poses_.size(), x, y, z, roll, pitch, yaw);
-
-  //     // rate.sleep();
-  //   }
-  //   catch (const tf2::TransformException &ex)
-  //   {
-  //     RCLCPP_WARN(this->get_logger(), "Could not get robot pose: %s", ex.what());
-  //   }
-  //   // }
-  //   // auto end_time = this->now();
-  //   // RCLCPP_INFO(this->get_logger(), "Stop watching robot coverage poses, total poses: %ld, time: %.2f min", robot_coverage_poses_.size(), (end_time - start_time).seconds() / 60);
-  // }
 
   void CoveragePathPlanner::saveCoverageImage()
   {

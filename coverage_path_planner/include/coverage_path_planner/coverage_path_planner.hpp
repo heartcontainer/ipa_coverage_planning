@@ -13,7 +13,6 @@
 #include <nav_msgs/msg/occupancy_grid.hpp>
 #include "geometry_msgs/msg/transform_stamped.hpp"
 
-// #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "tf2_ros/buffer.h"
@@ -44,7 +43,6 @@ namespace coverage_path_planner
     void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
 #if COVERAGE_PATH_BENCHMARK
     void timerCallback();
-    // void startWatchRobotCoveragePoses();
     void saveCoverageImage();
     std::string getCurrentTimeString();
 #endif
@@ -57,9 +55,7 @@ namespace coverage_path_planner
 #if COVERAGE_PATH_BENCHMARK
     double resolution_ = 0.05;
     std::vector<double> origin_ = {0.0, 0.0, 0.0};
-    // double robot_radius_ = 0.265;
     double coverage_radius_ = 0.265;
-    // std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
     cv::Mat map_;
     std::vector<geometry_msgs::msg::TransformStamped> robot_coverage_poses_;
 

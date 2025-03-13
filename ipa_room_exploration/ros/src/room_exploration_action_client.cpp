@@ -54,8 +54,8 @@ public:
 
         if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server",
                                                     {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_),
-                                                     rclcpp::Parameter("path_eps", 5.0),
-                                                     rclcpp::Parameter("grid_obstacle_offset", 0.2)}))
+                                                     rclcpp::Parameter("path_eps", 10.0),
+                                                     rclcpp::Parameter("grid_obstacle_offset", 0.1)}))
         {
             rclcpp::shutdown();
             return;
