@@ -208,7 +208,7 @@ namespace coverage_path_planner
     {
       const double inverse_map_resolution = 1. / resolution_;
       double scale_factor = 4.0;
-      cv::Scalar red(0, 0, 255), green(0, 255, 0), blue(255, 0, 0), grey(128, 128, 128);
+      cv::Scalar red(0, 0, 255);
 
       cv::Mat rgb_image;
       cv::cvtColor(map_.clone(), rgb_image, cv::COLOR_GRAY2RGB);
