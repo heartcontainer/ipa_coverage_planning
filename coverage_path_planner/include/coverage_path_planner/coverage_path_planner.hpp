@@ -43,7 +43,7 @@ namespace coverage_path_planner
     void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
 #if COVERAGE_PATH_BENCHMARK
     void timerCallback();
-    void saveCoverageImage();
+    void saveCoverageImage(float coverage_time);
     std::string getCurrentTimeString();
 #endif
 

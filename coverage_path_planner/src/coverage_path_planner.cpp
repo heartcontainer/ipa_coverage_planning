@@ -1,5 +1,7 @@
 #include "coverage_path_planner/coverage_path_planner.hpp"
 
+#include "nav2_util/occ_grid_values.hpp"
+
 namespace coverage_path_planner
 {
 
@@ -150,10 +152,10 @@ namespace coverage_path_planner
         int index = y * width + x;
         int8_t value = msg->data[index];
 
-        if (value == -1)
-          map_.at<uchar>(y, x) = 127;
-        else if (value == 0)
-          map_.at<uchar>(y, x) = 255;
+        if (value == nav2_util::OCC_GRID_UNKNOWN)
+          map_.at<uchar>(y, x) = 205;
+        else if (value == nav2_util::OCC_GRID_FREE)
+          map_.at<uchar>(y, x) = 254;
         else
           map_.at<uchar>(y, x) = 0;
       }
@@ -194,21 +196,43 @@ namespace coverage_path_planner
     }
     else
     {
-      auto end_time = this->now();
-      RCLCPP_INFO(this->get_logger(), "Stop watching robot coverage poses, total poses: %ld, time: %.2f min", robot_coverage_poses_.size(), (end_time - start_time_).seconds() / 60);
-      saveCoverageImage();
+      auto coverage_time = (this->now() - start_time_).seconds() / 60;
+      RCLCPP_INFO(this->get_logger(), "Stop watching robot coverage poses, total poses: %ld, time: %.2f min", robot_coverage_poses_.size(), coverage_time);
+      saveCoverageImage(coverage_time);
       timer_->cancel();
       timer_.reset();
     }
   }
 
-  void CoveragePathPlanner::saveCoverageImage()
+  double coverageRatio(const cv::Mat &image)
+  {
+    cv::Mat redMask;
+    cv::inRange(image, cv::Scalar(0, 0, 255), cv::Scalar(0, 0, 255), redMask);
+
+    double redPixels = cv::countNonZero(redMask);
+    double totalPixels = image.rows * image.cols;
+
+    return redPixels / totalPixels;
+  }
+
+  double freeRatio(const cv::Mat &image)
+  {
+    cv::Mat whiteMask;
+    cv::inRange(image, cv::Scalar(254, 254, 254), cv::Scalar(254, 254, 254), whiteMask);
+
+    double whitePixels = cv::countNonZero(whiteMask);
+    double totalPixels = image.rows * image.cols;
+
+    return whitePixels / totalPixels;
+  }
+
+  void CoveragePathPlanner::saveCoverageImage(float coverage_time)
   {
     if (!robot_coverage_poses_.empty())
     {
       const double inverse_map_resolution = 1. / resolution_;
       double scale_factor = 4.0;
-      cv::Scalar red(0, 0, 255);
+      cv::Scalar red(0, 0, 255), blue(255, 0, 0);
 
       cv::Mat rgb_image;
       cv::cvtColor(map_.clone(), rgb_image, cv::COLOR_GRAY2RGB);
@@ -224,6 +248,15 @@ namespace coverage_path_planner
 
         cv::circle(path_map, current_point, coverage_radius_ * scale_factor / resolution_, red, -1);
       }
+
+      // Cleaning Ratio
+      float coverage_ratio = coverageRatio(path_map);
+      float free_ratio = freeRatio(map_);
+      int cleaning_ratio = int(coverage_ratio * 100 / free_ratio);
+
+      std::string text = "cleaning ratio: " + std::to_string(cleaning_ratio) + "% time: " + std::to_string(int(coverage_time)) + "min";
+
+      cv::putText(path_map, text, cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, blue, 1, cv::LINE_AA);
 
       std::string save_path = "coverage_path/" + getCurrentTimeString() + ".png";
       cv::imwrite(save_path, path_map);

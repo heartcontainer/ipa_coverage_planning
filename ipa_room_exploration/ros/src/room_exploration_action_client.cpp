@@ -15,6 +15,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "nav2_util/occ_grid_values.hpp"
 
 // Overload of << operator for geometry_msgs::msg::Pose2D to wanted format
 std::ostream &operator<<(std::ostream &os, const geometry_msgs::msg::Pose2D &obj)
@@ -88,9 +89,9 @@ private:
                 int index = y * width + x;
                 int8_t value = msg->data[index];
 
-                if (value == -1)
+                if (value == nav2_util::OCC_GRID_UNKNOWN)
                     map_.at<uchar>(y, x) = 127;
-                else if (value == 0)
+                else if (value == nav2_util::OCC_GRID_FREE)
                     map_.at<uchar>(y, x) = 255;
                 else
                     map_.at<uchar>(y, x) = 0;
@@ -329,7 +330,6 @@ private:
     double coverage_radius_ = 0.265;
     std::vector<double> start_pos_ = {0.0, 0.0, 0.0};
     cv::Mat map_;
-    std::vector<geometry_msgs::msg::TransformStamped> robot_coverage_poses_;
 
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
