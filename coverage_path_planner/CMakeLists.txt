@@ -4,6 +4,7 @@ project(coverage_path_planner)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(nav2_util REQUIRED)
+find_package(OpenCV REQUIRED)
 
 include_directories(
   include
@@ -25,6 +26,7 @@ set(dependencies
   rclcpp
   rclcpp_components
   nav2_util
+  OpenCV
 )
 
 ament_target_dependencies(${executable_name}

@@ -173,6 +173,7 @@ ament_target_dependencies(room_exploration_client
   ipa_building_common
   tf2
   tf2_ros
+  nav2_util
 )
 
 # Room exploration evaluation

@@ -15,6 +15,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include "geometry_msgs/msg/transform_stamped.hpp"
+#include "nav2_util/occ_grid_values.hpp"
 
 // Overload of << operator for geometry_msgs::msg::Pose2D to wanted format
 std::ostream &operator<<(std::ostream &os, const geometry_msgs::msg::Pose2D &obj)
@@ -45,15 +46,11 @@ public:
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
         get_robot_pose();
-        if (start_pos_.size() != 3)
-        {
-            RCLCPP_FATAL(this->get_logger(), "starting_position must contain 3 values");
-            rclcpp::shutdown();
-            return;
-        }
 
         if (!dynamic_reconfigure::update_parameters(this, "/room_exploration/room_exploration_server",
-                                                    {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_)}))
+                                                    {rclcpp::Parameter("room_exploration_algorithm", room_exploration_algorithm_),
+                                                     rclcpp::Parameter("path_eps", 10.0),
+                                                     rclcpp::Parameter("grid_obstacle_offset", 0.1)}))
         {
             rclcpp::shutdown();
             return;
@@ -92,9 +89,9 @@ private:
                 int index = y * width + x;
                 int8_t value = msg->data[index];
 
-                if (value == -1)
+                if (value == nav2_util::OCC_GRID_UNKNOWN)
                     map_.at<uchar>(y, x) = 127;
-                else if (value == 0)
+                else if (value == nav2_util::OCC_GRID_FREE)
                     map_.at<uchar>(y, x) = 255;
                 else
                     map_.at<uchar>(y, x) = 0;
@@ -249,7 +246,7 @@ private:
             }
             if (save_exploration_map_)
             {
-                std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + ".png";
+                std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + "_" + getCurrentTimeString() + ".png";
                 cv::imwrite(save_path, path_map);
                 RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
             }
@@ -305,6 +302,20 @@ private:
         {
             RCLCPP_WARN(this->get_logger(), "Could not get robot pose: %s", ex.what());
         }
+    }
+
+    std::string getCurrentTimeString()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+        std::tm tm{};
+        localtime_r(&now_c, &tm);
+
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%Y%m%d_%H%M%S");
+
+        return oss.str();
     }
 
 private:
