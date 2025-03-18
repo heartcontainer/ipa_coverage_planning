@@ -246,7 +246,7 @@ private:
             }
             if (save_exploration_map_)
             {
-                std::string save_path = "room_exploration/" + std::to_string(room_exploration_algorithm_) + "_" + getCurrentTimeString() + ".png";
+                std::string save_path = "images/room_exploration/" + std::to_string(room_exploration_algorithm_) + "/" + getCurrentTimeString() + ".png";
                 cv::imwrite(save_path, path_map);
                 RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
             }

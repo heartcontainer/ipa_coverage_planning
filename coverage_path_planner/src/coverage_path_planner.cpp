@@ -60,7 +60,7 @@ namespace coverage_path_planner
     if (coverage_in_progress_)
     {
       RCLCPP_INFO(get_logger(), "Coverage in progress, canceling the goal...");
-      // follow_waypoints_client_->async_cancel_all_goals();
+      follow_waypoints_client_->async_cancel_all_goals();
       coverage_in_progress_ = false;
     }
     path_sub_.reset();
@@ -258,7 +258,7 @@ namespace coverage_path_planner
 
       cv::putText(path_map, text, cv::Point(10, 20), cv::FONT_HERSHEY_SIMPLEX, 0.5, blue, 1, cv::LINE_AA);
 
-      std::string save_path = "coverage_path/" + getCurrentTimeString() + ".png";
+      std::string save_path = "images/coverage_path/" + getCurrentTimeString() + ".png";
       cv::imwrite(save_path, path_map);
       robot_coverage_poses_.clear();
       RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
