@@ -292,7 +292,7 @@ private:
         // display or save the map
         if (save_segmented_map_)
         {
-            std::string save_path = "room_segmentation/" + std::to_string(room_segmentation_algorithm_) + ".png";
+            std::string save_path = "images/room_segmentation/" + std::to_string(room_segmentation_algorithm_) + "/" + getCurrentTimeString() + ".png";
             cv::imwrite(save_path, colour_segmented_map);
             RCLCPP_INFO(this->get_logger(), "Saved the map to %s", save_path.c_str());
             rclcpp::shutdown();
@@ -302,6 +302,20 @@ private:
             cv::imshow("segmentation", colour_segmented_map);
             cv::waitKey();
         }
+    }
+
+    std::string getCurrentTimeString()
+    {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+        std::tm tm{};
+        localtime_r(&now_c, &tm);
+
+        std::ostringstream oss;
+        oss << std::put_time(&tm, "%Y%m%d_%H%M%S");
+
+        return oss.str();
     }
 };
 
